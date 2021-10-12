@@ -30,11 +30,13 @@ private:
 	Rect* _munchieRect;
 	Texture2D* _munchieBlueTexture;
 	Texture2D* _munchieInvertedTexture;
+	Vector2* _munchiePosition;
+	bool isEaten = false;
 
 	// Position for String
 	Vector2* _stringPosition;
 
-	bool collision = true;
+	bool hasCollision = true;
 
 public:
 	/// <summary> Constructs the Pacman class. </summary>

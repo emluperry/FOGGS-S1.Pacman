@@ -36,7 +36,8 @@ void Pacman::LoadContent()
 	_munchieBlueTexture->Load("Textures/Munchie.tga", true);
 	_munchieInvertedTexture = new Texture2D();
 	_munchieInvertedTexture->Load("Textures/MunchieInverted.tga", true);
-	_munchieRect = new Rect(100.0f, 450.0f, 12, 12);
+	_munchieRect = new Rect(0.0f, 0.0f, 12, 12);
+	_munchiePosition = new Vector2(100.0f, 450.0f);
 
 	// Set string position
 	_stringPosition = new Vector2(10.0f, 25.0f);
@@ -61,9 +62,9 @@ void Pacman::Update(int elapsedTime)
 		_pacmanPosition->Y += 0.1f * elapsedTime; //Moves Pacman across Y axis
 
 	if (keyboardState->IsKeyDown(Input::Keys::SPACE))
-		collision = !collision;
+		hasCollision = !hasCollision;
 
-	if (!collision)
+	if (!hasCollision)
 	{
 		//prevents movement off right edge
 		if (_pacmanPosition->X - _pacmanSourceRect->Width > 1024) //1024 is game width
@@ -90,7 +91,7 @@ void Pacman::Update(int elapsedTime)
 			_pacmanPosition->Y = 768;
 		}
 	}
-	else if (collision)
+	else if (hasCollision)
 	{
 		//prevents movement off right edge
 		if (_pacmanPosition->X + _pacmanSourceRect->Width > 1024) //1024 is game width
@@ -117,6 +118,15 @@ void Pacman::Update(int elapsedTime)
 			_pacmanPosition->Y = 0;
 		}
 	}
+
+	//if overlaps dot, eat dot
+	if (_munchiePosition->X < _pacmanPosition->X + _pacmanSourceRect->Width &&
+		_munchiePosition->X + _munchieRect->X > _pacmanPosition->X &&
+		_munchiePosition->Y < _pacmanPosition->Y + _pacmanSourceRect->Height &&
+		_munchiePosition->Y + _munchieRect->Y > _pacmanSourceRect->Y)
+	{
+		isEaten = true;
+	}
 }
 
 void Pacman::Draw(int elapsedTime)
@@ -128,23 +138,22 @@ void Pacman::Draw(int elapsedTime)
 	SpriteBatch::BeginDraw(); // Starts Drawing
 	SpriteBatch::Draw(_pacmanTexture, _pacmanPosition, _pacmanSourceRect); // Draws Pacman
 
-	if (_frameCount < 30)
+	_frameCount++;
+	if (!isEaten)
 	{
-		// Draws Red Munchie
-		SpriteBatch::Draw(_munchieInvertedTexture, _munchieRect, nullptr, Vector2::Zero, 1.0f, 0.0f, Color::White, SpriteEffect::NONE);
-
-		_frameCount++;
+		if (_frameCount < 30)
+		{
+			// Draws Red Munchie
+			SpriteBatch::Draw(_munchieInvertedTexture, _munchiePosition, _munchieRect);
+		}
+		else
+		{
+			// Draw Blue Munchie
+			SpriteBatch::Draw(_munchieBlueTexture, _munchiePosition, _munchieRect);
+		}
 	}
-	else
-	{
-		// Draw Blue Munchie
-		SpriteBatch::Draw(_munchieBlueTexture, _munchieRect, nullptr, Vector2::Zero, 1.0f, 0.0f, Color::White, SpriteEffect::NONE);
-		
-		_frameCount++;
-
-		if (_frameCount >= 60)
-			_frameCount = 0;
-	}
+	if (_frameCount >= 60)
+		_frameCount = 0;
 	
 	// Draws String
 	SpriteBatch::DrawString(stream.str().c_str(), _stringPosition, Color::Green);
