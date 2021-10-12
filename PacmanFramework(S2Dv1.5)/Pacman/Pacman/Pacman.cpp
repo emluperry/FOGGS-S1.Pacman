@@ -60,30 +60,62 @@ void Pacman::Update(int elapsedTime)
 	else if (keyboardState->IsKeyDown(Input::Keys::S))
 		_pacmanPosition->Y += 0.1f * elapsedTime; //Moves Pacman across Y axis
 
-	//prevents movement off right edge
-	if (_pacmanPosition->X + _pacmanSourceRect->Width > 1024) //1024 is game width
+	if (keyboardState->IsKeyDown(Input::Keys::SPACE))
+		collision = !collision;
+
+	if (!collision)
 	{
-		//teleport to left wall
-		_pacmanPosition->X = 0;
-		
+		//prevents movement off right edge
+		if (_pacmanPosition->X - _pacmanSourceRect->Width > 1024) //1024 is game width
+		{
+			//teleport to left wall
+			_pacmanPosition->X = 0 - _pacmanSourceRect->Width;
+		}
+		//prevent movement off left edge
+		if (_pacmanPosition->X + _pacmanSourceRect->Width < 0)
+		{
+			//teleport to right wall
+			_pacmanPosition->X = 1024;
+		}
+		// off bottom edge
+		if (_pacmanPosition->Y > 768) //1024 is game width
+		{
+			//teleport to top wall
+			_pacmanPosition->Y = 0 - _pacmanSourceRect->Height;
+		}
+		// off top edge
+		if (_pacmanPosition->Y + _pacmanSourceRect->Height < 0)
+		{
+			//teleport to bottom wall
+			_pacmanPosition->Y = 768;
+		}
 	}
-	//prevent movement off left edge
-	if (_pacmanPosition->X < 0)
+	else if (collision)
 	{
-		//teleport to right wall
-		_pacmanPosition->X = 1024 - _pacmanSourceRect->Width;
-	}
-	// off bottom edge
-	if (_pacmanPosition->Y + _pacmanSourceRect->Height > 768) //1024 is game width
-	{
-		//teleport to top wall
-		_pacmanPosition->Y = 0;
-	}
-	// off top edge
-	if (_pacmanPosition->Y < 0)
-	{
-		//teleport to bottom wall
-		_pacmanPosition->Y = 768 - _pacmanSourceRect->Height;
+		//prevents movement off right edge
+		if (_pacmanPosition->X + _pacmanSourceRect->Width > 1024) //1024 is game width
+		{
+			//block movement
+			_pacmanPosition->X = 1024 - +_pacmanSourceRect->Width;
+		}
+		//prevent movement off left edge
+		if (_pacmanPosition->X < 0)
+		{
+			//teleport to right wall
+			_pacmanPosition->X = 0;
+		}
+		// off bottom edge
+		if (_pacmanPosition->Y + _pacmanSourceRect->Height > 768) //1024 is game width
+		{
+			//block movement
+			_pacmanPosition->Y = 768 - _pacmanSourceRect->Height;
+		}
+		// off top edge
+		if (_pacmanPosition->Y < 0)
+		{
+			//block movement
+			_pacmanPosition->Y = 0;
+		}
 	}
 }
 
