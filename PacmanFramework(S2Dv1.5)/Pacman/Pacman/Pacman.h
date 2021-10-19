@@ -39,6 +39,14 @@ private:
 
 	bool hasCollision = true;
 
+	// Data for menus
+	Texture2D* _menuBackground;
+	Rect* _menuRectangle;
+	Vector2* _menuStringPosition;
+	bool _paused;
+	bool _pKeyDown;
+	bool _spacePressed;
+
 public:
 	/// <summary> Constructs the Pacman class. </summary>
 	Pacman(int argc, char* argv[]);
