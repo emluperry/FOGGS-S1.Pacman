@@ -1,5 +1,6 @@
 #include "Pacman.h"
 
+#include <iostream>
 #include <sstream>
 
 Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv), _cPacmanSpeed(0.1f)
@@ -8,6 +9,7 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv), _cPacmanSpeed(0.1f)
 	_paused = false;
 	_pKeyDown = false;
 	_spacePressed = false;
+	_sinceFrameChange = 0;
 
 	//Initialise important Game aspects
 	Graphics::Initialise(argc, argv, this, 1024, 768, false, 25, 25, "Pacman", 60);
@@ -30,7 +32,7 @@ void Pacman::LoadContent()
 {
 	// Load Pacman
 	_pacmanTexture = new Texture2D();
-	_pacmanTexture->Load("Textures/Pacman.tga", false);
+	_pacmanTexture->Load("Textures/Pacman.png", false);
 	_pacmanPosition = new Vector2(350.0f, 350.0f);
 	_pacmanSourceRect = new Rect(0.0f, 0.0f, 32, 32);
 
@@ -158,11 +160,26 @@ void Pacman::Update(int elapsedTime)
 
 void Pacman::Draw(int elapsedTime)
 {
+	std::cout << elapsedTime << std::endl;
+
 	// Allows us to easily create a string
 	std::stringstream stream;
 	stream << "Pacman X: " << _pacmanPosition->X << " Y: " << _pacmanPosition->Y;
 
 	SpriteBatch::BeginDraw(); // Starts Drawing
+
+	_sinceFrameChange += elapsedTime;
+	if (_sinceFrameChange >= 500)
+	{
+		_sinceFrameChange = 0;
+
+		_pacmanSourceRect->X += _pacmanSourceRect->Width;
+
+		if (_pacmanSourceRect->X >= _pacmanTexture->GetWidth()) {
+			_pacmanSourceRect->X = 0.0f;
+		}
+	}
+
 	SpriteBatch::Draw(_pacmanTexture, _pacmanPosition, _pacmanSourceRect); // Draws Pacman
 
 	if (!isEaten)
@@ -178,6 +195,7 @@ void Pacman::Draw(int elapsedTime)
 			SpriteBatch::Draw(_munchieBlueTexture, _munchiePosition, _munchieRect);
 		}
 	}
+
 	if (_frameCount >= 60)
 		_frameCount = 0;
 	
