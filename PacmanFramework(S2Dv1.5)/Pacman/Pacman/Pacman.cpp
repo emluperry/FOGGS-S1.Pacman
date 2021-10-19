@@ -9,6 +9,7 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv), _cPacmanSpeed(0.1f)
 	_paused = false;
 	_pKeyDown = false;
 	_spacePressed = false;
+	_inverseAnim = false;
 	_sinceFrameChange = 0;
 
 	//Initialise important Game aspects
@@ -169,14 +170,28 @@ void Pacman::Draw(int elapsedTime)
 	SpriteBatch::BeginDraw(); // Starts Drawing
 
 	_sinceFrameChange += elapsedTime;
-	if (_sinceFrameChange >= 500)
+	if (_sinceFrameChange >= 100)
 	{
 		_sinceFrameChange = 0;
 
-		_pacmanSourceRect->X += _pacmanSourceRect->Width;
+		if (!_inverseAnim) {
+			_pacmanSourceRect->X += _pacmanSourceRect->Width;
+			if (_pacmanSourceRect->X >= _pacmanTexture->GetWidth()) {
+				_inverseAnim = true;
+				_pacmanSourceRect->X -= 2 * _pacmanSourceRect->Width;
+			}
+		}
+		else
+		{
+			_pacmanSourceRect->X -= _pacmanSourceRect->Width;
+			if (_pacmanSourceRect->X <= 0.0f) {
+				_inverseAnim = false;
+			}
+		}
 
 		if (_pacmanSourceRect->X >= _pacmanTexture->GetWidth()) {
-			_pacmanSourceRect->X = 0.0f;
+			_inverseAnim = !_inverseAnim;
+			_pacmanSourceRect->X -= 2* _pacmanSourceRect->Width;
 		}
 	}
 
