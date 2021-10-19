@@ -2,7 +2,7 @@
 
 #include <sstream>
 
-Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
+Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv), _cPacmanSpeed(0.1f)
 {
 	_frameCount = 0;
 
@@ -13,7 +13,7 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	// Start the Game Loop - This calls Update and Draw in game loop
 	Graphics::StartGameLoop();
 }
-// slight change
+
 Pacman::~Pacman()
 {
 	delete _pacmanTexture;
@@ -50,16 +50,16 @@ void Pacman::Update(int elapsedTime)
 
 	// Checks if D key is pressed
 	if (keyboardState->IsKeyDown(Input::Keys::D))
-		_pacmanPosition->X += 0.1f * elapsedTime; //Moves Pacman across X axis
+		_pacmanPosition->X += _cPacmanSpeed * elapsedTime; //Moves Pacman across X axis
 	// Checks if A key is pressed
 	else if (keyboardState->IsKeyDown(Input::Keys::A))
-		_pacmanPosition->X -= 0.1f * elapsedTime; //Moves Pacman across X axis
+		_pacmanPosition->X -= _cPacmanSpeed * elapsedTime; //Moves Pacman across X axis
 	// Checks if W key is pressed
 	else if (keyboardState->IsKeyDown(Input::Keys::W))
-		_pacmanPosition->Y -= 0.1f * elapsedTime; //Moves Pacman across Y axis
+		_pacmanPosition->Y -= _cPacmanSpeed * elapsedTime; //Moves Pacman across Y axis
 	// Checks if S key is pressed
 	else if (keyboardState->IsKeyDown(Input::Keys::S))
-		_pacmanPosition->Y += 0.1f * elapsedTime; //Moves Pacman across Y axis
+		_pacmanPosition->Y += _cPacmanSpeed * elapsedTime; //Moves Pacman across Y axis
 
 	if (keyboardState->IsKeyDown(Input::Keys::SPACE))
 		hasCollision = !hasCollision;
@@ -67,7 +67,7 @@ void Pacman::Update(int elapsedTime)
 	if (!hasCollision)
 	{
 		//prevents movement off right edge
-		if (_pacmanPosition->X - _pacmanSourceRect->Width > 1024) //1024 is game width
+		if (_pacmanPosition->X - _pacmanSourceRect->Width > Graphics::GetViewportWidth()) //1024 is game width
 		{
 			//teleport to left wall
 			_pacmanPosition->X = 0 - _pacmanSourceRect->Width;
@@ -76,10 +76,10 @@ void Pacman::Update(int elapsedTime)
 		if (_pacmanPosition->X + _pacmanSourceRect->Width < 0)
 		{
 			//teleport to right wall
-			_pacmanPosition->X = 1024;
+			_pacmanPosition->X = Graphics::GetViewportWidth();
 		}
 		// off bottom edge
-		if (_pacmanPosition->Y > 768) //1024 is game width
+		if (_pacmanPosition->Y > Graphics::GetViewportHeight()) //1024 is game width
 		{
 			//teleport to top wall
 			_pacmanPosition->Y = 0 - _pacmanSourceRect->Height;
@@ -88,16 +88,16 @@ void Pacman::Update(int elapsedTime)
 		if (_pacmanPosition->Y + _pacmanSourceRect->Height < 0)
 		{
 			//teleport to bottom wall
-			_pacmanPosition->Y = 768;
+			_pacmanPosition->Y = Graphics::GetViewportHeight();
 		}
 	}
 	else if (hasCollision)
 	{
 		//prevents movement off right edge
-		if (_pacmanPosition->X + _pacmanSourceRect->Width > 1024) //1024 is game width
+		if (_pacmanPosition->X + _pacmanSourceRect->Width > Graphics::GetViewportWidth()) //1024 is game width
 		{
 			//block movement
-			_pacmanPosition->X = 1024 - +_pacmanSourceRect->Width;
+			_pacmanPosition->X = Graphics::GetViewportWidth() - +_pacmanSourceRect->Width;
 		}
 		//prevent movement off left edge
 		if (_pacmanPosition->X < 0)
@@ -106,10 +106,10 @@ void Pacman::Update(int elapsedTime)
 			_pacmanPosition->X = 0;
 		}
 		// off bottom edge
-		if (_pacmanPosition->Y + _pacmanSourceRect->Height > 768) //1024 is game width
+		if (_pacmanPosition->Y + _pacmanSourceRect->Height > Graphics::GetViewportHeight()) //1024 is game width
 		{
 			//block movement
-			_pacmanPosition->Y = 768 - _pacmanSourceRect->Height;
+			_pacmanPosition->Y = Graphics::GetViewportHeight() - _pacmanSourceRect->Height;
 		}
 		// off top edge
 		if (_pacmanPosition->Y < 0)
