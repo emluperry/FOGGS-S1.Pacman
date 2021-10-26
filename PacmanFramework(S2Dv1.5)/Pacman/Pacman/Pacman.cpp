@@ -3,15 +3,15 @@
 #include <iostream>
 #include <sstream>
 
-Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv), _cPacmanSpeed(0.1f)
+Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv), _cPacmanSpeed(0.1f), _cPacmanFrameTime(250)
 {
 	_frameCount = 0;
 	_paused = false;
 	_pKeyDown = false;
 	_spacePressed = false;
-	_inverseAnim = false;
-	_sinceFrameChange = 0;
 	_pacmanDirection = 0;
+	_pacmanCurrentFrameTime = 0;
+	_pacmanFrame = 0;
 
 	//Initialise important Game aspects
 	Graphics::Initialise(argc, argv, this, 1024, 768, false, 25, 25, "Pacman", 60);
@@ -97,7 +97,17 @@ void Pacman::Update(int elapsedTime)
 				_pacmanDirection = 1;
 			}
 
-			_pacmanSourceRect->Y = _pacmanSourceRect->Height * _pacmanDirection;
+			_pacmanCurrentFrameTime += elapsedTime;
+			if (_pacmanCurrentFrameTime > _cPacmanFrameTime) {
+				_pacmanFrame++; //increases animation frame
+				if (_pacmanFrame >= 4)
+					_pacmanFrame = 0; //four frames starting from 0, reset to 0 if the frame equals 4.
+
+				_pacmanCurrentFrameTime -= _cPacmanFrameTime;
+			}
+
+			_pacmanSourceRect->X = _pacmanSourceRect->Width * _pacmanFrame;
+			_pacmanSourceRect->Y = _pacmanSourceRect->Height * _pacmanDirection; // change source rect based on direction and frame.
 
 			if (keyboardState->IsKeyDown(Input::Keys::TAB))
 				hasCollision = !hasCollision;
@@ -177,32 +187,6 @@ void Pacman::Draw(int elapsedTime)
 	stream << "Pacman X: " << _pacmanPosition->X << " Y: " << _pacmanPosition->Y;
 
 	SpriteBatch::BeginDraw(); // Starts Drawing
-
-	_sinceFrameChange += elapsedTime;
-	if (_sinceFrameChange >= 100)
-	{
-		_sinceFrameChange = 0;
-
-		if (!_inverseAnim) {
-			_pacmanSourceRect->X += _pacmanSourceRect->Width;
-			if (_pacmanSourceRect->X >= _pacmanTexture->GetWidth()) {
-				_inverseAnim = true;
-				_pacmanSourceRect->X -= 2 * _pacmanSourceRect->Width;
-			}
-		}
-		else
-		{
-			_pacmanSourceRect->X -= _pacmanSourceRect->Width;
-			if (_pacmanSourceRect->X <= 0.0f) {
-				_inverseAnim = false;
-			}
-		}
-
-		if (_pacmanSourceRect->X >= _pacmanTexture->GetWidth()) {
-			_inverseAnim = !_inverseAnim;
-			_pacmanSourceRect->X -= 2* _pacmanSourceRect->Width;
-		}
-	}
 
 	SpriteBatch::Draw(_pacmanTexture, _pacmanPosition, _pacmanSourceRect); // Draws Pacman
 
