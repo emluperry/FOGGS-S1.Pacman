@@ -27,6 +27,7 @@ private:
 	const float _cPacmanSpeed;
 	float _sinceFrameChange;
 	bool _inverseAnim;
+	int _pacmanDirection;
 
 	// Data to represent Munchie
 	int _frameCount;
