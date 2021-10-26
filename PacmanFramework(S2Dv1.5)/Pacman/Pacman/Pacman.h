@@ -11,6 +11,8 @@
 // Just need to include main header file
 #include "S2D/S2D.h"
 
+#include "Munchie.h"
+
 // Reduces the amount of typing by including all classes in S2D namespace
 using namespace S2D;
 
@@ -38,7 +40,10 @@ private:
 	Vector2* _munchiePosition;
 	const int _cMunchieFrameTime;
 	int _munchieCurrentFrameTime;
-	bool isEaten = false;
+	bool _isEaten;
+
+	//experimental (non tutorial work: delete if issues caused)
+	//Munchie munchies[1];
 
 	// Data to rep. cherry
 	Rect* _cherryRect;
@@ -48,7 +53,7 @@ private:
 	// Position for String
 	Vector2* _stringPosition;
 
-	bool hasCollision = true;
+	bool _hasCollision;
 
 	// Data for menus
 	Texture2D* _menuBackground;
@@ -59,6 +64,7 @@ private:
 	bool _spacePressed;
 
 public:
+
 	/// <summary> Constructs the Pacman class. </summary>
 	Pacman(int argc, char* argv[]);
 

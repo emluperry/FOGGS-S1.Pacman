@@ -14,6 +14,8 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv), _cPacmanSpeed(0.1f), 
 	_pacmanFrame = 0;
 	_munchieCurrentFrameTime = 0;
 	_invertAnim = false;
+	_isEaten = false;
+	_hasCollision = true;
 
 	//Initialise important Game aspects
 	Graphics::Initialise(argc, argv, this, 1024, 768, false, 25, 25, "Pacman", 60);
@@ -135,9 +137,9 @@ void Pacman::Update(int elapsedTime)
 			_cherryRect->X = _cherryRect->Width * _munchieFrameCount; // change cherry sprite based on munchie sprite/time
 
 			if (keyboardState->IsKeyDown(Input::Keys::TAB))
-				hasCollision = !hasCollision;
+				_hasCollision = !_hasCollision;
 
-			if (!hasCollision)
+			if (!_hasCollision)
 			{
 				//prevents movement off right edge
 				if (_pacmanPosition->X - _pacmanSourceRect->Width > Graphics::GetViewportWidth()) //1024 is game width
@@ -164,7 +166,7 @@ void Pacman::Update(int elapsedTime)
 					_pacmanPosition->Y = Graphics::GetViewportHeight();
 				}
 			}
-			else if (hasCollision)
+			else if (_hasCollision)
 			{
 				//prevents movement off right edge
 				if (_pacmanPosition->X + _pacmanSourceRect->Width > Graphics::GetViewportWidth()) //1024 is game width
@@ -198,7 +200,7 @@ void Pacman::Update(int elapsedTime)
 				_munchiePosition->Y < _pacmanPosition->Y + _pacmanSourceRect->Height &&
 				_munchiePosition->Y + _munchieRect->Y > _pacmanSourceRect->Y)
 			{
-				isEaten = true;
+				_isEaten = true;
 			}
 		}
 
@@ -215,7 +217,7 @@ void Pacman::Draw(int elapsedTime)
 
 	SpriteBatch::Draw(_pacmanTexture, _pacmanPosition, _pacmanSourceRect); // Draws Pacman
 
-	if (!isEaten)
+	if (!_isEaten)
 	{
 		SpriteBatch::Draw(_munchieBlueTexture, _munchiePosition, _munchieRect); // Draws munchie
 	}
