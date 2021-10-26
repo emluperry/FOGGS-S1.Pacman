@@ -31,12 +31,18 @@ private:
 	const int _cPacmanFrameTime;
 
 	// Data to represent Munchie
-	int _frameCount;
+	int _munchieFrameCount;
 	Rect* _munchieRect;
 	Texture2D* _munchieBlueTexture;
-	Texture2D* _munchieInvertedTexture;
 	Vector2* _munchiePosition;
+	const int _cMunchieFrameTime;
+	int _munchieCurrentFrameTime;
 	bool isEaten = false;
+
+	// Data to rep. cherry
+	Rect* _cherryRect;
+	Texture2D* _cherryTexture;
+	Vector2* _cherryPosition;
 
 	// Position for String
 	Vector2* _stringPosition;

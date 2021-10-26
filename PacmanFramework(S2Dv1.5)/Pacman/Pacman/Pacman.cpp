@@ -3,15 +3,16 @@
 #include <iostream>
 #include <sstream>
 
-Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv), _cPacmanSpeed(0.1f), _cPacmanFrameTime(250)
+Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv), _cPacmanSpeed(0.1f), _cPacmanFrameTime(250), _cMunchieFrameTime(500)
 {
-	_frameCount = 0;
+	_munchieFrameCount = 0;
 	_paused = false;
 	_pKeyDown = false;
 	_spacePressed = false;
 	_pacmanDirection = 0;
 	_pacmanCurrentFrameTime = 0;
 	_pacmanFrame = 0;
+	_munchieCurrentFrameTime = 0;
 
 	//Initialise important Game aspects
 	Graphics::Initialise(argc, argv, this, 1024, 768, false, 25, 25, "Pacman", 60);
@@ -26,8 +27,9 @@ Pacman::~Pacman()
 	delete _pacmanTexture;
 	delete _pacmanSourceRect;
 	delete _munchieBlueTexture;
-	delete _munchieInvertedTexture;
 	delete _munchieRect;
+	delete _cherryTexture;
+	delete _cherryRect;
 }
 
 void Pacman::LoadContent()
@@ -41,10 +43,14 @@ void Pacman::LoadContent()
 	// Load Munchie
 	_munchieBlueTexture = new Texture2D();
 	_munchieBlueTexture->Load("Textures/Munchie.tga", true);
-	_munchieInvertedTexture = new Texture2D();
-	_munchieInvertedTexture->Load("Textures/MunchieInverted.tga", true);
 	_munchieRect = new Rect(0.0f, 0.0f, 12, 12);
 	_munchiePosition = new Vector2(100.0f, 450.0f);
+
+	//Load Cherry
+	_cherryTexture = new Texture2D;
+	_cherryTexture->Load("Textures/Cherry.png", false);
+	_cherryRect = new Rect(0.0f, 0.0f, 32, 32);
+	_cherryPosition = new Vector2(500.0f, 450.0f);
 
 	// Set string position
 	_stringPosition = new Vector2(10.0f, 25.0f);
@@ -75,7 +81,6 @@ void Pacman::Update(int elapsedTime)
 		}
 
 		if (!_paused) {
-			_frameCount++;
 			// Checks if D key is pressed
 			if (keyboardState->IsKeyDown(Input::Keys::D)) {
 				_pacmanPosition->X += _cPacmanSpeed * elapsedTime; //Moves Pacman across X axis
@@ -97,6 +102,15 @@ void Pacman::Update(int elapsedTime)
 				_pacmanDirection = 1;
 			}
 
+			_munchieCurrentFrameTime += elapsedTime;
+			if (_munchieCurrentFrameTime > _cMunchieFrameTime) {
+				_munchieFrameCount++;
+				if (_munchieFrameCount >= 2) {
+					_munchieFrameCount = 0;
+				}
+				_munchieCurrentFrameTime -= _cMunchieFrameTime;
+			}
+
 			_pacmanCurrentFrameTime += elapsedTime;
 			if (_pacmanCurrentFrameTime > _cPacmanFrameTime) {
 				_pacmanFrame++; //increases animation frame
@@ -108,6 +122,8 @@ void Pacman::Update(int elapsedTime)
 
 			_pacmanSourceRect->X = _pacmanSourceRect->Width * _pacmanFrame;
 			_pacmanSourceRect->Y = _pacmanSourceRect->Height * _pacmanDirection; // change source rect based on direction and frame.
+			_munchieRect->X = _munchieRect->Width * _munchieFrameCount; // change munchie sprite based on time
+			_cherryRect->X = _cherryRect->Width * _munchieFrameCount; // change cherry sprite based on munchie sprite/time
 
 			if (keyboardState->IsKeyDown(Input::Keys::TAB))
 				hasCollision = !hasCollision;
@@ -192,20 +208,10 @@ void Pacman::Draw(int elapsedTime)
 
 	if (!isEaten)
 	{
-		if (_frameCount < 30)
-		{
-			// Draws Red Munchie
-			SpriteBatch::Draw(_munchieInvertedTexture, _munchiePosition, _munchieRect);
-		}
-		else
-		{
-			// Draw Blue Munchie
-			SpriteBatch::Draw(_munchieBlueTexture, _munchiePosition, _munchieRect);
-		}
+		SpriteBatch::Draw(_munchieBlueTexture, _munchiePosition, _munchieRect); // Draws munchie
 	}
 
-	if (_frameCount >= 60)
-		_frameCount = 0;
+	SpriteBatch::Draw(_cherryTexture, _cherryPosition, _cherryRect); //Draws cherry
 	
 	// Draws String
 	SpriteBatch::DrawString(stream.str().c_str(), _stringPosition, Color::Green);
