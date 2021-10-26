@@ -3,7 +3,7 @@
 #include <iostream>
 #include <sstream>
 
-Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv), _cPacmanSpeed(0.1f), _cPacmanFrameTime(250), _cMunchieFrameTime(500)
+Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv), _cPacmanSpeed(0.1f), _cPacmanFrameTime(150), _cMunchieFrameTime(500)
 {
 	_munchieFrameCount = 0;
 	_paused = false;
@@ -13,6 +13,7 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv), _cPacmanSpeed(0.1f), 
 	_pacmanCurrentFrameTime = 0;
 	_pacmanFrame = 0;
 	_munchieCurrentFrameTime = 0;
+	_invertAnim = false;
 
 	//Initialise important Game aspects
 	Graphics::Initialise(argc, argv, this, 1024, 768, false, 25, 25, "Pacman", 60);
@@ -113,15 +114,23 @@ void Pacman::Update(int elapsedTime)
 
 			_pacmanCurrentFrameTime += elapsedTime;
 			if (_pacmanCurrentFrameTime > _cPacmanFrameTime) {
-				_pacmanFrame++; //increases animation frame
-				if (_pacmanFrame >= 4)
-					_pacmanFrame = 0; //four frames starting from 0, reset to 0 if the frame equals 4.
+				if (!_invertAnim) {
+					_pacmanFrame++; //increases animation frame
+					if (_pacmanFrame >= 3)
+						_invertAnim = !_invertAnim; //four frames starting from 0, swap frame change order after 4th frame
+				}
+				else {
+					_pacmanFrame--;
+					if (_pacmanFrame <= 0)
+						_invertAnim = !_invertAnim;
+				}
 
 				_pacmanCurrentFrameTime -= _cPacmanFrameTime;
 			}
 
 			_pacmanSourceRect->X = _pacmanSourceRect->Width * _pacmanFrame;
 			_pacmanSourceRect->Y = _pacmanSourceRect->Height * _pacmanDirection; // change source rect based on direction and frame.
+
 			_munchieRect->X = _munchieRect->Width * _munchieFrameCount; // change munchie sprite based on time
 			_cherryRect->X = _cherryRect->Width * _munchieFrameCount; // change cherry sprite based on munchie sprite/time
 

@@ -29,6 +29,7 @@ private:
 	int _pacmanFrame;
 	int _pacmanCurrentFrameTime;
 	const int _cPacmanFrameTime;
+	bool _invertAnim;
 
 	// Data to represent Munchie
 	int _munchieFrameCount;
