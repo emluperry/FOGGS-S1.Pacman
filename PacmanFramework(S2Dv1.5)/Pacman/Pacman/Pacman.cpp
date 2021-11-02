@@ -49,7 +49,13 @@ void Pacman::LoadContent()
 	_munchieBlueTexture = new Texture2D();
 	_munchieBlueTexture->Load("Textures/Munchie.tga", true);
 	_munchieRect = new Rect(0.0f, 0.0f, 12, 12);
-	_munchiePosition = new Vector2(100.0f, 450.0f);
+	//_munchiePosition = new Vector2(100.0f, 450.0f);
+	//initialise munchies
+	for (int i = 0; i < sizeof(munchies) / sizeof(*munchies); i++)
+	{
+		munchies[i] = new Munchie();
+		munchies[i]->SetPosition(_munchiePositions[i]);
+	}
 
 	//Load Cherry
 	_cherryTexture = new Texture2D;
@@ -90,13 +96,13 @@ void Pacman::Update(int elapsedTime)
 			CheckViewportCollision();
 
 			//if overlaps dot, eat dot
-			if (_munchiePosition->X < _pacmanPosition->X + _pacmanSourceRect->Width &&
-				_munchiePosition->X + _munchieRect->X > _pacmanPosition->X &&
-				_munchiePosition->Y < _pacmanPosition->Y + _pacmanSourceRect->Height &&
-				_munchiePosition->Y + _munchieRect->Y > _pacmanSourceRect->Y)
-			{
-				_isEaten = true;
-			}
+			//if (_munchiePosition->X < _pacmanPosition->X + _pacmanSourceRect->Width &&
+			//	_munchiePosition->X + _munchieRect->X > _pacmanPosition->X &&
+			//	_munchiePosition->Y < _pacmanPosition->Y + _pacmanSourceRect->Height &&
+			//	_munchiePosition->Y + _munchieRect->Y > _pacmanSourceRect->Y)
+			//{
+			//	_isEaten = true;
+			//}
 		}
 	}
 }
@@ -111,10 +117,19 @@ void Pacman::Draw(int elapsedTime)
 
 	SpriteBatch::Draw(_pacmanTexture, _pacmanPosition, _pacmanSourceRect); // Draws Pacman
 
-	if (!_isEaten)
+	for (Munchie* dot : munchies)
 	{
-		SpriteBatch::Draw(_munchieBlueTexture, _munchiePosition, _munchieRect); // Draws munchie
+		if (!dot->GetState())
+		{
+			SpriteBatch::Draw(_munchieBlueTexture, dot->GetPosition(), _munchieRect);
+		}
 	}
+
+	//if (!_isEaten)
+	//{
+	//	SpriteBatch::Draw(_munchieBlueTexture, _munchiePosition, _munchieRect); // Draws munchie
+	//}
+
 
 	SpriteBatch::Draw(_cherryTexture, _cherryPosition, _cherryRect); //Draws cherry
 	
@@ -139,6 +154,7 @@ void Pacman::Draw(int elapsedTime)
 
 	SpriteBatch::EndDraw(); // Ends Drawing
 }
+
 
 void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState)
 {

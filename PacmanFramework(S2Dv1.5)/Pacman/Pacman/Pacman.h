@@ -55,7 +55,8 @@ private:
 	bool _isEaten;
 
 	//experimental (non tutorial work: delete if issues caused)
-	//Munchie munchies[1];
+	Munchie* munchies[2];
+	Vector2* _munchiePositions[2] = { new Vector2(100.0f, 450.0f), new Vector2(150.0f, 450.0f) };
 
 	// Data to rep. cherry
 	Rect* _cherryRect;
