@@ -3,12 +3,14 @@
 #include <iostream>
 #include <sstream>
 
+// NOTE TO SELF: Pacman is dressed as a ghost. When creating ghost assets, make the ghosts try to dress as pacman! (Change colour of blue ghost to yellow)
+
 Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv), _cPacmanSpeed(0.1f), _cPacmanFrameTime(150), _cMunchieFrameTime(500)
 {
 	_munchieFrameCount = 0;
 	_paused = false;
 	_pKeyDown = false;
-	_spacePressed = false;
+	_started = false;
 	_pacmanDirection = 0;
 	_pacmanCurrentFrameTime = 0;
 	_pacmanFrame = 0;
@@ -70,129 +72,22 @@ void Pacman::Update(int elapsedTime)
 	// Gets the current state of the keyboard
 	Input::KeyboardState* keyboardState = Input::Keyboard::GetState();
 
-	if (keyboardState->IsKeyDown(Input::Keys::SPACE)) {
-		_spacePressed = true;
+	if (!_started)
+	{
+		CheckStart(keyboardState, Input::Keys::SPACE);
 	}
-
-	if (_spacePressed) {
-		if (keyboardState->IsKeyDown(Input::Keys::P) && !_pKeyDown) {
-			_pKeyDown = true;
-			_paused = !_paused;
-		}
-		if (keyboardState->IsKeyUp(Input::Keys::P)) {
-			_pKeyDown = false;
-		}
+	else
+	{
+		CheckPaused(keyboardState, Input::Keys::P);
 
 		if (!_paused) {
-			// Checks if D key is pressed
-			if (keyboardState->IsKeyDown(Input::Keys::D)) {
-				_pacmanPosition->X += _cPacmanSpeed * elapsedTime; //Moves Pacman across X axis
-				_pacmanDirection = 0;
-			}
-			// Checks if A key is pressed
-			else if (keyboardState->IsKeyDown(Input::Keys::A)) {
-				_pacmanPosition->X -= _cPacmanSpeed * elapsedTime; //Moves Pacman across X axis
-				_pacmanDirection = 2;
-			}
-			// Checks if W key is pressed
-			else if (keyboardState->IsKeyDown(Input::Keys::W)) {
-				_pacmanPosition->Y -= _cPacmanSpeed * elapsedTime; //Moves Pacman across Y axis
-				_pacmanDirection = 3;
-			}
-			// Checks if S key is pressed
-			else if (keyboardState->IsKeyDown(Input::Keys::S)) {
-				_pacmanPosition->Y += _cPacmanSpeed * elapsedTime; //Moves Pacman across Y axis
-				_pacmanDirection = 1;
-			}
 
-			_munchieCurrentFrameTime += elapsedTime;
-			if (_munchieCurrentFrameTime > _cMunchieFrameTime) {
-				_munchieFrameCount++;
-				if (_munchieFrameCount >= 2) {
-					_munchieFrameCount = 0;
-				}
-				_munchieCurrentFrameTime -= _cMunchieFrameTime;
-			}
+			Input(elapsedTime, keyboardState);
 
-			_pacmanCurrentFrameTime += elapsedTime;
-			if (_pacmanCurrentFrameTime > _cPacmanFrameTime) {
-				if (!_invertAnim) {
-					_pacmanFrame++; //increases animation frame
-					if (_pacmanFrame >= 3)
-						_invertAnim = !_invertAnim; //four frames starting from 0, swap frame change order after 4th frame
-				}
-				else {
-					_pacmanFrame--;
-					if (_pacmanFrame <= 0)
-						_invertAnim = !_invertAnim;
-				}
+			UpdateMunchie(elapsedTime);
+			UpdatePacman(elapsedTime);
 
-				_pacmanCurrentFrameTime -= _cPacmanFrameTime;
-			}
-
-			_pacmanSourceRect->X = _pacmanSourceRect->Width * _pacmanFrame;
-			_pacmanSourceRect->Y = _pacmanSourceRect->Height * _pacmanDirection; // change source rect based on direction and frame.
-
-			_munchieRect->X = _munchieRect->Width * _munchieFrameCount; // change munchie sprite based on time
-			_cherryRect->X = _cherryRect->Width * _munchieFrameCount; // change cherry sprite based on munchie sprite/time
-
-			if (keyboardState->IsKeyDown(Input::Keys::TAB))
-				_hasCollision = !_hasCollision;
-
-			if (!_hasCollision)
-			{
-				//prevents movement off right edge
-				if (_pacmanPosition->X - _pacmanSourceRect->Width > Graphics::GetViewportWidth()) //1024 is game width
-				{
-					//teleport to left wall
-					_pacmanPosition->X = 0 - _pacmanSourceRect->Width;
-				}
-				//prevent movement off left edge
-				if (_pacmanPosition->X + _pacmanSourceRect->Width < 0)
-				{
-					//teleport to right wall
-					_pacmanPosition->X = Graphics::GetViewportWidth();
-				}
-				// off bottom edge
-				if (_pacmanPosition->Y > Graphics::GetViewportHeight()) //1024 is game width
-				{
-					//teleport to top wall
-					_pacmanPosition->Y = 0 - _pacmanSourceRect->Height;
-				}
-				// off top edge
-				if (_pacmanPosition->Y + _pacmanSourceRect->Height < 0)
-				{
-					//teleport to bottom wall
-					_pacmanPosition->Y = Graphics::GetViewportHeight();
-				}
-			}
-			else if (_hasCollision)
-			{
-				//prevents movement off right edge
-				if (_pacmanPosition->X + _pacmanSourceRect->Width > Graphics::GetViewportWidth()) //1024 is game width
-				{
-					//block movement
-					_pacmanPosition->X = Graphics::GetViewportWidth() - +_pacmanSourceRect->Width;
-				}
-				//prevent movement off left edge
-				if (_pacmanPosition->X < 0)
-				{
-					//teleport to right wall
-					_pacmanPosition->X = 0;
-				}
-				// off bottom edge
-				if (_pacmanPosition->Y + _pacmanSourceRect->Height > Graphics::GetViewportHeight()) //1024 is game width
-				{
-					//block movement
-					_pacmanPosition->Y = Graphics::GetViewportHeight() - _pacmanSourceRect->Height;
-				}
-				// off top edge
-				if (_pacmanPosition->Y < 0)
-				{
-					//block movement
-					_pacmanPosition->Y = 0;
-				}
-			}
+			CheckViewportCollision();
 
 			//if overlaps dot, eat dot
 			if (_munchiePosition->X < _pacmanPosition->X + _pacmanSourceRect->Width &&
@@ -203,7 +98,6 @@ void Pacman::Update(int elapsedTime)
 				_isEaten = true;
 			}
 		}
-
 	}
 }
 
@@ -235,7 +129,7 @@ void Pacman::Draw(int elapsedTime)
 		SpriteBatch::DrawString(menuStream.str().c_str(), _menuStringPosition, Color::Red);
 	}
 
-	if (!_spacePressed) {
+	if (!_started) {
 		std::stringstream menuStream;
 		menuStream << "PACMAN!\nPress SPACE to start.";
 
@@ -244,4 +138,144 @@ void Pacman::Draw(int elapsedTime)
 	}
 
 	SpriteBatch::EndDraw(); // Ends Drawing
+}
+
+void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState)
+{
+	// Checks if D key is pressed
+	if (keyboardState->IsKeyDown(Input::Keys::D)) {
+		_pacmanPosition->X += _cPacmanSpeed * elapsedTime; //Moves Pacman across X axis
+		_pacmanDirection = 0;
+	}
+	// Checks if A key is pressed
+	else if (keyboardState->IsKeyDown(Input::Keys::A)) {
+		_pacmanPosition->X -= _cPacmanSpeed * elapsedTime; //Moves Pacman across X axis
+		_pacmanDirection = 2;
+	}
+	// Checks if W key is pressed
+	else if (keyboardState->IsKeyDown(Input::Keys::W)) {
+		_pacmanPosition->Y -= _cPacmanSpeed * elapsedTime; //Moves Pacman across Y axis
+		_pacmanDirection = 3;
+	}
+	// Checks if S key is pressed
+	else if (keyboardState->IsKeyDown(Input::Keys::S)) {
+		_pacmanPosition->Y += _cPacmanSpeed * elapsedTime; //Moves Pacman across Y axis
+		_pacmanDirection = 1;
+	}
+
+	if (keyboardState->IsKeyDown(Input::Keys::TAB))
+				_hasCollision = !_hasCollision;
+}
+
+void Pacman::CheckPaused(Input::KeyboardState* state, Input::Keys pauseKey)
+{
+	if (state->IsKeyDown(pauseKey) && !_pKeyDown) {
+		_pKeyDown = true;
+		_paused = !_paused;
+	}
+	if (state->IsKeyUp(pauseKey)) {
+		_pKeyDown = false;
+	}
+}
+
+void Pacman::CheckStart(Input::KeyboardState* state, Input::Keys startKey)
+{
+	if (state->IsKeyDown(startKey)) {
+		_started = true;
+	}
+}
+
+void Pacman::CheckViewportCollision()
+{
+	if (!_hasCollision)
+	{
+		//prevents movement off right edge
+		if (_pacmanPosition->X - _pacmanSourceRect->Width > Graphics::GetViewportWidth()) //1024 is game width
+		{
+			//teleport to left wall
+			_pacmanPosition->X = 0 - _pacmanSourceRect->Width;
+		}
+		//prevent movement off left edge
+		if (_pacmanPosition->X + _pacmanSourceRect->Width < 0)
+		{
+			//teleport to right wall
+			_pacmanPosition->X = Graphics::GetViewportWidth();
+		}
+		// off bottom edge
+		if (_pacmanPosition->Y > Graphics::GetViewportHeight()) //1024 is game width
+		{
+			//teleport to top wall
+			_pacmanPosition->Y = 0 - _pacmanSourceRect->Height;
+		}
+		// off top edge
+		if (_pacmanPosition->Y + _pacmanSourceRect->Height < 0)
+		{
+			//teleport to bottom wall
+			_pacmanPosition->Y = Graphics::GetViewportHeight();
+		}
+	}
+	else if (_hasCollision)
+	{
+		//prevents movement off right edge
+		if (_pacmanPosition->X + _pacmanSourceRect->Width > Graphics::GetViewportWidth()) //1024 is game width
+		{
+			//block movement
+			_pacmanPosition->X = Graphics::GetViewportWidth() - +_pacmanSourceRect->Width;
+		}
+		//prevent movement off left edge
+		if (_pacmanPosition->X < 0)
+		{
+			//teleport to right wall
+			_pacmanPosition->X = 0;
+		}
+		// off bottom edge
+		if (_pacmanPosition->Y + _pacmanSourceRect->Height > Graphics::GetViewportHeight()) //1024 is game width
+		{
+			//block movement
+			_pacmanPosition->Y = Graphics::GetViewportHeight() - _pacmanSourceRect->Height;
+		}
+		// off top edge
+		if (_pacmanPosition->Y < 0)
+		{
+			//block movement
+			_pacmanPosition->Y = 0;
+		}
+	}
+}
+
+void Pacman::UpdatePacman(int elapsedTime)
+{
+	_pacmanCurrentFrameTime += elapsedTime;
+	if (_pacmanCurrentFrameTime > _cPacmanFrameTime) {
+		if (!_invertAnim) {
+			_pacmanFrame++; //increases animation frame
+			if (_pacmanFrame >= 3)
+				_invertAnim = !_invertAnim; //four frames starting from 0, swap frame change order after 4th frame
+		}
+		else {
+			_pacmanFrame--;
+			if (_pacmanFrame <= 0)
+				_invertAnim = !_invertAnim;
+		}
+
+		_pacmanCurrentFrameTime -= _cPacmanFrameTime;
+	}
+
+	_pacmanSourceRect->X = _pacmanSourceRect->Width * _pacmanFrame;
+	_pacmanSourceRect->Y = _pacmanSourceRect->Height * _pacmanDirection; // change source rect based on direction and frame.
+}
+
+void Pacman::UpdateMunchie(int elapsedTime)
+{
+	_munchieCurrentFrameTime += elapsedTime;
+	if (_munchieCurrentFrameTime > _cMunchieFrameTime) {
+		_munchieFrameCount++;
+		if (_munchieFrameCount >= 2) {
+			_munchieFrameCount = 0;
+		}
+		_munchieCurrentFrameTime -= _cMunchieFrameTime;
+	}
+
+	_munchieRect->X = _munchieRect->Width * _munchieFrameCount; // change munchie sprite based on time
+	_cherryRect->X = _cherryRect->Width * _munchieFrameCount; // change cherry sprite based on munchie sprite/time
 }

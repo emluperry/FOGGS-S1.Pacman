@@ -22,6 +22,18 @@ using namespace S2D;
 class Pacman : public Game
 {
 private:
+	//Input methods
+	void Input(int elapsedTime, Input::KeyboardState* state);
+
+	//Check methods
+	void CheckPaused(Input::KeyboardState* state, Input::Keys pauseKey);
+	void CheckStart(Input::KeyboardState* state, Input::Keys pauseKey);
+	void CheckViewportCollision();
+
+	//Update methods
+	void UpdatePacman(int elapsedTime);
+	void UpdateMunchie(int elapsedTime);
+
 	// Data to represent Pacman
 	Vector2* _pacmanPosition;
 	Rect* _pacmanSourceRect;
@@ -59,9 +71,10 @@ private:
 	Texture2D* _menuBackground;
 	Rect* _menuRectangle;
 	Vector2* _menuStringPosition;
+	//use of both paused and pkeydown prevents screen flickering
 	bool _paused;
 	bool _pKeyDown;
-	bool _spacePressed;
+	bool _started;
 
 public:
 
