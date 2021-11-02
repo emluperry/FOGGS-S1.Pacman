@@ -16,7 +16,6 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv), _cPacmanSpeed(0.1f), 
 	_pacmanFrame = 0;
 	_munchieCurrentFrameTime = 0;
 	_invertAnim = false;
-	_isEaten = false;
 	_hasCollision = true;
 
 	//Initialise important Game aspects
@@ -49,7 +48,6 @@ void Pacman::LoadContent()
 	_munchieBlueTexture = new Texture2D();
 	_munchieBlueTexture->Load("Textures/Munchie.tga", true);
 	_munchieRect = new Rect(0.0f, 0.0f, 12, 12);
-	//_munchiePosition = new Vector2(100.0f, 450.0f);
 	//initialise munchies
 	for (int i = 0; i < sizeof(munchies) / sizeof(*munchies); i++)
 	{
@@ -95,14 +93,7 @@ void Pacman::Update(int elapsedTime)
 
 			CheckViewportCollision();
 
-			//if overlaps dot, eat dot
-			//if (_munchiePosition->X < _pacmanPosition->X + _pacmanSourceRect->Width &&
-			//	_munchiePosition->X + _munchieRect->X > _pacmanPosition->X &&
-			//	_munchiePosition->Y < _pacmanPosition->Y + _pacmanSourceRect->Height &&
-			//	_munchiePosition->Y + _munchieRect->Y > _pacmanSourceRect->Y)
-			//{
-			//	_isEaten = true;
-			//}
+			CheckDotCollision();
 		}
 	}
 }
@@ -124,11 +115,6 @@ void Pacman::Draw(int elapsedTime)
 			SpriteBatch::Draw(_munchieBlueTexture, dot->GetPosition(), _munchieRect);
 		}
 	}
-
-	//if (!_isEaten)
-	//{
-	//	SpriteBatch::Draw(_munchieBlueTexture, _munchiePosition, _munchieRect); // Draws munchie
-	//}
 
 
 	SpriteBatch::Draw(_cherryTexture, _cherryPosition, _cherryRect); //Draws cherry
@@ -257,6 +243,22 @@ void Pacman::CheckViewportCollision()
 			_pacmanPosition->Y = 0;
 		}
 	}
+}
+
+void Pacman::CheckDotCollision()
+{
+	for (Munchie* dot : munchies)
+	{
+		if (dot->GetPosition()->X < _pacmanPosition->X + _pacmanSourceRect->Width &&
+			dot->GetPosition()->X + _munchieRect->X > _pacmanPosition->X &&
+			dot->GetPosition()->Y < _pacmanPosition->Y + _pacmanSourceRect->Height &&
+			dot->GetPosition()->Y + _munchieRect->Y > _pacmanSourceRect->Y)
+		{
+			dot->SetState(true);
+		}
+	}
+	//if overlaps dot, eat dot - NOTE: LOGIC IS FLAWED DUE TO ANIMATION CALCULATIONS
+
 }
 
 void Pacman::UpdatePacman(int elapsedTime)

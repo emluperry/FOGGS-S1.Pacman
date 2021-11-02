@@ -29,6 +29,7 @@ private:
 	void CheckPaused(Input::KeyboardState* state, Input::Keys pauseKey);
 	void CheckStart(Input::KeyboardState* state, Input::Keys pauseKey);
 	void CheckViewportCollision();
+	void CheckDotCollision();
 
 	//Update methods
 	void UpdatePacman(int elapsedTime);
@@ -49,10 +50,8 @@ private:
 	int _munchieFrameCount;
 	Rect* _munchieRect;
 	Texture2D* _munchieBlueTexture;
-	Vector2* _munchiePosition;
 	const int _cMunchieFrameTime;
 	int _munchieCurrentFrameTime;
-	bool _isEaten;
 
 	//experimental (non tutorial work: delete if issues caused)
 	Munchie* munchies[2];

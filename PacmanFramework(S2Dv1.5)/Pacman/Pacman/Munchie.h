@@ -28,5 +28,6 @@ public:
 	void SetPosition(Vector2* position);
 
 	bool GetState();
+	void SetState(bool state);
 };
 

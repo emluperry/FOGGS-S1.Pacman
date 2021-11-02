@@ -30,3 +30,8 @@ bool Munchie::GetState()
 {
 	return _isEaten;
 }
+
+void Munchie::SetState(bool state)
+{
+	_isEaten = state;
+}
