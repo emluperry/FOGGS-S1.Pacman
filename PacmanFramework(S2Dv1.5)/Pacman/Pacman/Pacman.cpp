@@ -250,14 +250,14 @@ void Pacman::CheckDotCollision()
 	for (Munchie* dot : munchies)
 	{
 		if (dot->GetPosition()->X < _pacmanPosition->X + _pacmanSourceRect->Width &&
-			dot->GetPosition()->X + _munchieRect->X > _pacmanPosition->X &&
+			dot->GetPosition()->X + _munchieRect->Width > _pacmanPosition->X &&
 			dot->GetPosition()->Y < _pacmanPosition->Y + _pacmanSourceRect->Height &&
-			dot->GetPosition()->Y + _munchieRect->Y > _pacmanSourceRect->Y)
+			dot->GetPosition()->Y + _munchieRect->Height > _pacmanPosition->Y)
 		{
 			dot->SetState(true);
 		}
 	}
-	//if overlaps dot, eat dot - NOTE: LOGIC IS FLAWED DUE TO ANIMATION CALCULATIONS
+	//if overlaps dot, eat dot
 
 }
 
