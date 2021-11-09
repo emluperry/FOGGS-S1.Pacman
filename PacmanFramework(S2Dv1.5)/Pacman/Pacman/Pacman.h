@@ -11,14 +11,44 @@
 // Just need to include main header file
 #include "S2D/S2D.h"
 
-#include "Munchie.h"
-
 // Reduces the amount of typing by including all classes in S2D namespace
 using namespace S2D;
 
-// Declares the Pacman class which inherits from the Game class.
-// This allows us to overload the Game class methods to help us
-// load content, draw and update our game.
+
+//Structure Definition
+struct Player
+{
+	float speedMultiplier;
+	int currentFrameTime;
+	int direction;
+	int frame;
+	Rect* sourceRect;
+	Texture2D* texture;
+	Vector2* position;
+	const int cFrameTime = 150;
+	bool invertAnim;
+};
+
+struct Enemy
+{
+	int frameCount;
+	Rect* sourceRect;
+	Texture2D* texture;
+	Vector2* position;
+	const int cFrameTime = 500;
+	int currentFrameTime;
+	bool isEaten;
+};
+
+struct Menu
+{
+	//use of both paused and pkeydown prevents screen flickering
+	bool active;
+	bool keyDown;
+};
+
+
+//Class Definition
 class Pacman : public Game
 {
 private:
@@ -35,32 +65,13 @@ private:
 	void UpdateMunchie(int elapsedTime);
 
 	// Data to represent Pacman
-	Vector2* _pacmanPosition;
-	Rect* _pacmanSourceRect;
-	Texture2D* _pacmanTexture;
-	const float _cPacmanSpeed;
-	int _pacmanDirection;
-	int _pacmanFrame;
-	int _pacmanCurrentFrameTime;
-	const int _cPacmanFrameTime;
-	bool _invertAnim;
+	Player* _pacman;
 
 	// Data to represent Munchie
-	int _munchieFrameCount;
-	Rect* _munchieRect;
-	Texture2D* _munchieBlueTexture;
-	Vector2* _munchiePosition;
-	const int _cMunchieFrameTime;
-	int _munchieCurrentFrameTime;
-	bool _isEaten;
-
-	//experimental (non tutorial work: delete if issues caused)
-	//Munchie munchies[1];
+	Enemy* _munchie;
 
 	// Data to rep. cherry
-	Rect* _cherryRect;
-	Texture2D* _cherryTexture;
-	Vector2* _cherryPosition;
+	Enemy* _cherry;
 
 	// Position for String
 	Vector2* _stringPosition;
@@ -71,10 +82,9 @@ private:
 	Texture2D* _menuBackground;
 	Rect* _menuRectangle;
 	Vector2* _menuStringPosition;
-	//use of both paused and pkeydown prevents screen flickering
-	bool _paused;
-	bool _pKeyDown;
-	bool _started;
+
+	Menu* _pauseMenu;
+	Menu* _startMenu;
 
 public:
 
