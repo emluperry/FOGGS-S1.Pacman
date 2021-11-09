@@ -122,6 +122,16 @@ void Pacman::Update(int elapsedTime)
 
 			CheckViewportCollision();
 
+			for (int i = 0; i < MUNCHIECOUNT; i++)
+			{
+				if (_munchies[i]->position->X < _pacman->position->X + _pacman->sourceRect->Width &&
+					_munchies[i]->position->X + _munchies[i]->sourceRect->Width > _pacman->position->X &&
+					_munchies[i]->position->Y < _pacman->position->Y + _pacman->sourceRect->Height &&
+					_munchies[i]->position->Y + _munchies[i]->sourceRect->Height > _pacman->position->Y)
+				{
+					_munchies[i]->isEaten = true;
+				}
+			}
 			//if overlaps dot, eat dot
 			//if (_munchie->position->X < _pacman->position->X + _pacman->sourceRect->Width &&
 			//	_munchie->position->X + _munchie->sourceRect->X > _pacman->position->X &&
@@ -144,12 +154,20 @@ void Pacman::Draw(int elapsedTime)
 
 	SpriteBatch::Draw(_pacman->texture, _pacman->position, _pacman->sourceRect); // Draws Pacman
 
-	//if (!_munchie->isEaten)
-	//{
 	for (int i = 0; i < MUNCHIECOUNT; i++)
 	{
-		SpriteBatch::Draw(_munchies[i]->texture, _munchies[i]->position, _munchies[i]->sourceRect); // Draws munchie
+		if (!_munchies[i]->isEaten)
+		{
+			SpriteBatch::Draw(_munchies[i]->texture, _munchies[i]->position, _munchies[i]->sourceRect); // Draws munchie
+		}
 	}
+
+	//if (!_munchie->isEaten)
+	//{
+	//for (int i = 0; i < MUNCHIECOUNT; i++)
+	//{
+	//	SpriteBatch::Draw(_munchies[i]->texture, _munchies[i]->position, _munchies[i]->sourceRect); // Draws munchie
+	//}
 	//}
 
 	SpriteBatch::Draw(_cherry->texture, _cherry->position, _cherry->sourceRect); //Draws cherry
