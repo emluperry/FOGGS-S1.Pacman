@@ -2,11 +2,14 @@
 
 #include <iostream>
 #include <sstream>
+#include <time.h>
 
 // NOTE TO SELF: Pacman is dressed as a ghost. When creating ghost assets, make the ghosts try to dress as pacman! (Change colour of blue ghost to yellow)
 
 Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 {
+	srand(time(NULL));
+
 	_pacman = new Player();
 	_pacman->speedMultiplier = 0.1f;
 	_pacman->direction = 0;
@@ -14,10 +17,13 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	_pacman->frame = 0;
 	_pacman->invertAnim = false;
 
-	_munchie = new Enemy();
-	_munchie-> frameCount = 0;
-	_munchie->currentFrameTime = 0;
-	_munchie->isEaten = false;
+	for (int i = 0; i < MUNCHIECOUNT; i++)
+	{
+		_munchies[i] = new Enemy();
+		_munchies[i]->currentFrameTime = 0;
+		_munchies[i]->frameCount = rand() % 1;
+		_munchies[i]->isEaten = false;
+	}
 
 	_cherry = new Enemy();
 
@@ -42,8 +48,17 @@ Pacman::~Pacman()
 {
 	delete _pacman->texture;
 	delete _pacman->sourceRect;
-	delete _munchie->texture;
-	delete _munchie->sourceRect;
+
+	delete _munchies[0]->texture;
+
+	for (int i = 0; i < MUNCHIECOUNT; i++)
+	{
+		delete _munchies[i]->sourceRect;
+		delete _munchies[i]->position;
+		delete _munchies[i];
+	}
+	delete[] _munchies;
+
 	delete _cherry->texture;
 	delete _cherry->sourceRect;
 }
@@ -56,11 +71,15 @@ void Pacman::LoadContent()
 	_pacman->position = new Vector2(350.0f, 350.0f);
 	_pacman->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
 
-	// Load Munchie
-	_munchie->texture = new Texture2D();
-	_munchie->texture->Load("Textures/Munchie.tga", true);
-	_munchie->sourceRect = new Rect(0.0f, 0.0f, 12, 12);
-	_munchie->position = new Vector2(100.0f, 450.0f);
+	// Load Munchies
+	Texture2D* munchieTex = new Texture2D();
+	munchieTex->Load("Textures/Munchie.tga", true);
+	for (int i = 0; i < MUNCHIECOUNT; i++)
+	{
+		_munchies[i]->texture = munchieTex;
+		_munchies[i]->sourceRect = new Rect(0.0f, 0.0f, 12, 12);
+		_munchies[i]->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
+	}
 
 	//Load Cherry
 	_cherry->texture = new Texture2D;
@@ -95,19 +114,22 @@ void Pacman::Update(int elapsedTime)
 
 			Input(elapsedTime, keyboardState);
 
-			UpdateMunchie(elapsedTime);
+			for (int i = 0; i < MUNCHIECOUNT; i++)
+			{
+				UpdateMunchie(elapsedTime, i);
+			}
 			UpdatePacman(elapsedTime);
 
 			CheckViewportCollision();
 
 			//if overlaps dot, eat dot
-			if (_munchie->position->X < _pacman->position->X + _pacman->sourceRect->Width &&
-				_munchie->position->X + _munchie->sourceRect->X > _pacman->position->X &&
-				_munchie->position->Y < _pacman->position->Y + _pacman->sourceRect->Height &&
-				_munchie->position->Y + _munchie->sourceRect->Y > _pacman->sourceRect->Y)
-			{
-				_munchie->isEaten = true;
-			}
+			//if (_munchie->position->X < _pacman->position->X + _pacman->sourceRect->Width &&
+			//	_munchie->position->X + _munchie->sourceRect->X > _pacman->position->X &&
+			//	_munchie->position->Y < _pacman->position->Y + _pacman->sourceRect->Height &&
+			//	_munchie->position->Y + _munchie->sourceRect->Y > _pacman->sourceRect->Y)
+			//{
+			//	_munchie->isEaten = true;
+			//}
 		}
 	}
 }
@@ -122,10 +144,13 @@ void Pacman::Draw(int elapsedTime)
 
 	SpriteBatch::Draw(_pacman->texture, _pacman->position, _pacman->sourceRect); // Draws Pacman
 
-	if (!_munchie->isEaten)
+	//if (!_munchie->isEaten)
+	//{
+	for (int i = 0; i < MUNCHIECOUNT; i++)
 	{
-		SpriteBatch::Draw(_munchie->texture, _munchie->position, _munchie->sourceRect); // Draws munchie
+		SpriteBatch::Draw(_munchies[i]->texture, _munchies[i]->position, _munchies[i]->sourceRect); // Draws munchie
 	}
+	//}
 
 	SpriteBatch::Draw(_cherry->texture, _cherry->position, _cherry->sourceRect); //Draws cherry
 	
@@ -192,7 +217,7 @@ void Pacman::CheckPaused(Input::KeyboardState* state, Input::Keys pauseKey)
 void Pacman::CheckStart(Input::KeyboardState* state, Input::Keys startKey)
 {
 	if (state->IsKeyDown(startKey)) {
-		_startMenu->active = true;
+		_startMenu->active = false;
 	}
 }
 
@@ -276,8 +301,9 @@ void Pacman::UpdatePacman(int elapsedTime)
 	_pacman->sourceRect->Y = _pacman->sourceRect->Height * _pacman->direction; // change source rect based on direction and frame.
 }
 
-void Pacman::UpdateMunchie(int elapsedTime)
+void Pacman::UpdateMunchie(int elapsedTime, int index)
 {
+	Enemy* _munchie = _munchies[index];
 	_munchie->currentFrameTime += elapsedTime;
 	if (_munchie->currentFrameTime > _munchie->cFrameTime) {
 		_munchie->frameCount++;

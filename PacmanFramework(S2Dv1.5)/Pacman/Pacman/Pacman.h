@@ -8,6 +8,8 @@
 	#endif
 #endif
 
+#define MUNCHIECOUNT 50
+
 // Just need to include main header file
 #include "S2D/S2D.h"
 
@@ -42,7 +44,7 @@ struct Enemy
 
 struct Menu
 {
-	//use of both paused and pkeydown prevents screen flickering
+	//use of both paused and keydown prevents screen flickering
 	bool active;
 	bool keyDown;
 };
@@ -62,13 +64,13 @@ private:
 
 	//Update methods
 	void UpdatePacman(int elapsedTime);
-	void UpdateMunchie(int elapsedTime);
+	void UpdateMunchie(int elapsedTime, int index);
 
 	// Data to represent Pacman
 	Player* _pacman;
 
 	// Data to represent Munchie
-	Enemy* _munchie;
+	Enemy* _munchies[MUNCHIECOUNT];
 
 	// Data to rep. cherry
 	Enemy* _cherry;
