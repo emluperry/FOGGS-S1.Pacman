@@ -26,6 +26,9 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	}
 
 	_cherry = new Enemy();
+	_cherry->currentFrameTime = 0;
+	_cherry->frameCount = rand() % 1;
+	_cherry->isEaten = false;
 
 	_hasCollision = true;
 
@@ -132,14 +135,13 @@ void Pacman::Update(int elapsedTime)
 					_munchies[i]->isEaten = true;
 				}
 			}
-			//if overlaps dot, eat dot
-			//if (_munchie->position->X < _pacman->position->X + _pacman->sourceRect->Width &&
-			//	_munchie->position->X + _munchie->sourceRect->X > _pacman->position->X &&
-			//	_munchie->position->Y < _pacman->position->Y + _pacman->sourceRect->Height &&
-			//	_munchie->position->Y + _munchie->sourceRect->Y > _pacman->sourceRect->Y)
-			//{
-			//	_munchie->isEaten = true;
-			//}
+			if (_cherry->position->X < _pacman->position->X + _pacman->sourceRect->Width &&
+				_cherry->position->X + _cherry->sourceRect->Width > _pacman->position->X &&
+				_cherry->position->Y < _pacman->position->Y + _pacman->sourceRect->Height &&
+				_cherry->position->Y + _cherry->sourceRect->Height > _pacman->position->Y)
+			{
+				_cherry->isEaten = true;
+			}
 		}
 	}
 }
@@ -162,15 +164,10 @@ void Pacman::Draw(int elapsedTime)
 		}
 	}
 
-	//if (!_munchie->isEaten)
-	//{
-	//for (int i = 0; i < MUNCHIECOUNT; i++)
-	//{
-	//	SpriteBatch::Draw(_munchies[i]->texture, _munchies[i]->position, _munchies[i]->sourceRect); // Draws munchie
-	//}
-	//}
-
-	SpriteBatch::Draw(_cherry->texture, _cherry->position, _cherry->sourceRect); //Draws cherry
+	if (!_cherry->isEaten)
+	{
+		SpriteBatch::Draw(_cherry->texture, _cherry->position, _cherry->sourceRect); //Draws cherry
+	}
 	
 	// Draws String
 	SpriteBatch::DrawString(stream.str().c_str(), _stringPosition, Color::Green);
