@@ -247,8 +247,7 @@ void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::
 	}
 
 	//mouse input - PACMAN MOVEMENT OPTIONAL IMPLEMENTATION: MOVEMENT WITH MOUSE
-	//NOTE: if keeping this code, can put directional movement into functions for code reusability?
-	//NOTE 2: pacman can move diagonally using this method, if the mouse stays still & clicked for long enough. Solution?
+	//NOTE: pacman can move diagonally using this method, if the mouse stays still & clicked for long enough. Solution?
 	if (mouseState->LeftButton == Input::ButtonState::PRESSED)
 	{
 		float xDist = _pacman->position->X - mouseState->X;
@@ -283,7 +282,7 @@ void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::
 		}
 	}
 
-	//mouse input - SPEED BOOST OPTIONAL IMPLEMENTATION: LIMITED TIME/USE
+	//mouse input - SPEED BOOST OPTIONAL IMPLEMENTATION: LIMITED TIME/USE, speeds up pacman AND player ghosts
 	if (mouseState->RightButton == Input::ButtonState::PRESSED && _pacman->boostTime >= 3000 && _pacman->availableBoosts > 0)
 	{
 		_pacman->speedMultiplier = 2.0f;
