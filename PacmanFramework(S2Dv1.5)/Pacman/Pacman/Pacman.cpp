@@ -104,6 +104,8 @@ void Pacman::Update(int elapsedTime)
 {
 	// Gets the current state of the keyboard
 	Input::KeyboardState* keyboardState = Input::Keyboard::GetState();
+	//Gets current state of mouse
+	Input::MouseState* mouseState = Input::Mouse::GetState();
 
 	if (_startMenu->active)
 	{
@@ -115,7 +117,7 @@ void Pacman::Update(int elapsedTime)
 
 		if (!_pauseMenu->active) {
 
-			Input(elapsedTime, keyboardState);
+			Input(elapsedTime, keyboardState, mouseState);
 
 			for (int i = 0; i < MUNCHIECOUNT; i++)
 			{
@@ -191,8 +193,16 @@ void Pacman::Draw(int elapsedTime)
 	SpriteBatch::EndDraw(); // Ends Drawing
 }
 
-void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState)
+void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::MouseState* mouseState)
 {
+	//mouse input - REPOSITIONS CHERRY
+	if (mouseState->LeftButton == Input::ButtonState::PRESSED)
+	{
+		_cherry->position->X = mouseState->X;
+		_cherry->position->Y = mouseState->Y;
+	}
+
+
 	// Checks if D key is pressed
 	if (keyboardState->IsKeyDown(Input::Keys::D)) {
 		_pacman->position->X += _pacman->speedMultiplier * elapsedTime; //Moves Pacman across X axis

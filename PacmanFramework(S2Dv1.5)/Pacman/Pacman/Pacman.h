@@ -55,7 +55,7 @@ class Pacman : public Game
 {
 private:
 	//Input methods
-	void Input(int elapsedTime, Input::KeyboardState* state);
+	void Input(int elapsedTime, Input::KeyboardState* state, Input::MouseState* mouseState);
 
 	//Check methods
 	void CheckPaused(Input::KeyboardState* state, Input::Keys pauseKey);
