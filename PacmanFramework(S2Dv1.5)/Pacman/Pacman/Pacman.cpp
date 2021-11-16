@@ -10,6 +10,7 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 {
 	srand(time(NULL));
 
+	//Player pacman
 	_pacman = new Player();
 	_pacman->cPacmanSpeed = 0.1f;
 	_pacman->speedMultiplier = 1.0f;
@@ -18,6 +19,24 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	_pacman->frame = 0;
 	_pacman->invertAnim = false;
 
+	//Player ghosts
+	_ghostA = new Player();
+	_ghostA->cPacmanSpeed = 0.1f;
+	_ghostA->speedMultiplier = 1.0f;
+	_ghostA->direction = 0;
+	_ghostA->currentFrameTime = 0;
+	_ghostA->frame = 0;
+	_ghostA->invertAnim = false;
+
+	_ghostB = new Player();
+	_ghostB->cPacmanSpeed = 0.1f;
+	_ghostB->speedMultiplier = 1.0f;
+	_ghostB->direction = 0;
+	_ghostB->currentFrameTime = 0;
+	_ghostB->frame = 0;
+	_ghostB->invertAnim = false;
+
+	//Munchies & collectables
 	for (int i = 0; i < MUNCHIECOUNT; i++)
 	{
 		_munchies[i] = new Enemy();
@@ -31,8 +50,9 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	_cherry->frameCount = rand() % 1;
 	_cherry->isEaten = false;
 
-	_hasCollision = true;
+	_hasCollision = true; //walls do not wrap
 
+	//menus
 	_pauseMenu = new Menu();
 	_pauseMenu->active = false;
 	_pauseMenu->keyDown = false;
@@ -52,6 +72,11 @@ Pacman::~Pacman()
 {
 	delete _pacman->texture;
 	delete _pacman->sourceRect;
+
+	delete _ghostA->texture;
+	delete _ghostA->sourceRect;
+	delete _ghostB->texture;
+	delete _ghostB->sourceRect;
 
 	delete _munchies[0]->texture;
 
@@ -74,6 +99,17 @@ void Pacman::LoadContent()
 	_pacman->texture->Load("Textures/Pacman.png", false);
 	_pacman->position = new Vector2(350.0f, 350.0f);
 	_pacman->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
+
+	// Load Ghosts
+	Texture2D* ghostTex = new Texture2D();
+	ghostTex->Load("Textures/Ghost.png", false);
+	_ghostA->texture = ghostTex;
+	_ghostA->position = new Vector2(100.0f, 100.0f);
+	_ghostA->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
+
+	_ghostB->texture = ghostTex;
+	_ghostB->position = new Vector2(100.0f, 300.0f);
+	_ghostB->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
 
 	// Load Munchies
 	Texture2D* munchieTex = new Texture2D();
@@ -160,6 +196,8 @@ void Pacman::Draw(int elapsedTime)
 	SpriteBatch::BeginDraw(); // Starts Drawing
 
 	SpriteBatch::Draw(_pacman->texture, _pacman->position, _pacman->sourceRect); // Draws Pacman
+	SpriteBatch::Draw(_ghostA->texture, _ghostA->position, _ghostA->sourceRect);
+	SpriteBatch::Draw(_ghostB->texture, _ghostB->position, _ghostB->sourceRect);
 
 	for (int i = 0; i < MUNCHIECOUNT; i++)
 	{
@@ -198,6 +236,7 @@ void Pacman::Draw(int elapsedTime)
 
 void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::MouseState* mouseState)
 {
+	// pacman use mouse, ghostA use WASD, ghostB use arrows
 	float pacmanSpeed = _pacman->cPacmanSpeed * elapsedTime * _pacman->speedMultiplier;
 
 	//mouse input - REPOSITIONS CHERRY
@@ -223,13 +262,11 @@ void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::
 			//move in x direction
 			if (xDist >= 0)
 			{
-				_pacman->position->X -= pacmanSpeed; //Moves Pacman across X axis
-				_pacman->direction = 2;
+				MoveLeft(_pacman, pacmanSpeed);
 			}
 			else
 			{
-				_pacman->position->X += pacmanSpeed; //Moves Pacman across X axis
-				_pacman->direction = 0;
+				MoveRight(_pacman, pacmanSpeed);
 			}
 		}
 		else
@@ -237,13 +274,11 @@ void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::
 			// move in y direction
 			if (yDist >= 0)
 			{
-				_pacman->position->Y -= pacmanSpeed; //Moves Pacman across X axis
-				_pacman->direction = 3;
+				MoveUp(_pacman, pacmanSpeed);
 			}
 			else
 			{
-				_pacman->position->Y += pacmanSpeed; //Moves Pacman across X axis
-				_pacman->direction = 1;
+				MoveDown(_pacman, pacmanSpeed);
 			}
 		}
 	}
@@ -255,44 +290,55 @@ void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::
 		_pacman->availableBoosts--;
 		_pacman->boostTime = 0;
 	}
-	cout << _pacman->speedMultiplier << " " << _pacman->availableBoosts << " " << _pacman->boostTime << endl;
 
 	if (_pacman->boostTime >= 3000)
 	{
 		_pacman->speedMultiplier = 1.0f;
 	}
 
-	// Check if SHIFT key pressed
-	//if (keyboardState->IsKeyDown(Input::Keys::LEFTSHIFT))
-	//{
-		//apply multiplier
-		//_pacman->speedMultiplier = 2.0f;
-	//}
-	//else
-	//{
-	//	_pacman->speedMultiplier = 1.0f;
-	//}
-
 	// Checks if D key is pressed
 	if (keyboardState->IsKeyDown(Input::Keys::D)) {
-		_pacman->position->X += pacmanSpeed; //Moves Pacman across X axis
-		_pacman->direction = 0;
+		MoveRight(_ghostA, pacmanSpeed);
+		//_pacman->position->X += pacmanSpeed; //Moves Pacman across X axis
+		//_pacman->direction = 0;
 	}
 	// Checks if A key is pressed
 	else if (keyboardState->IsKeyDown(Input::Keys::A)) {
-		_pacman->position->X -= pacmanSpeed; //Moves Pacman across X axis
-		_pacman->direction = 2;
+		MoveLeft(_ghostA, pacmanSpeed);
+		//_pacman->position->X -= pacmanSpeed; //Moves Pacman across X axis
+		//_pacman->direction = 2;
 	}
 	// Checks if W key is pressed
 	else if (keyboardState->IsKeyDown(Input::Keys::W)) {
-		_pacman->position->Y -= pacmanSpeed; //Moves Pacman across Y axis
-		_pacman->direction = 3;
+		MoveUp(_ghostA, pacmanSpeed);
+		//_pacman->position->Y -= pacmanSpeed; //Moves Pacman across Y axis
+		//_pacman->direction = 3;
 	}
 	// Checks if S key is pressed
 	else if (keyboardState->IsKeyDown(Input::Keys::S)) {
-		_pacman->position->Y += pacmanSpeed; //Moves Pacman across Y axis
-		_pacman->direction = 1;
+		MoveDown(_ghostA, pacmanSpeed);
+		//_pacman->position->Y += pacmanSpeed; //Moves Pacman across Y axis
+		//_pacman->direction = 1;
 	}
+
+
+	// Checks if -> key is pressed
+	if (keyboardState->IsKeyDown(Input::Keys::RIGHT)) {
+		MoveRight(_ghostB, pacmanSpeed);
+	}
+	// Checks if <- key is pressed
+	else if (keyboardState->IsKeyDown(Input::Keys::LEFT)) {
+		MoveLeft(_ghostB, pacmanSpeed);
+	}
+	// Checks if -^ key is pressed
+	else if (keyboardState->IsKeyDown(Input::Keys::UP)) {
+		MoveUp(_ghostB, pacmanSpeed);
+	}
+	// Checks if -v key is pressed
+	else if (keyboardState->IsKeyDown(Input::Keys::DOWN)) {
+		MoveDown(_ghostB, pacmanSpeed);
+	}
+
 
 	//Checks if R key is pressed. Randomly moves cherry based on this.
 	if (keyboardState->IsKeyDown(Input::Keys::R))
@@ -417,4 +463,28 @@ void Pacman::UpdateMunchie(int elapsedTime, int index)
 
 	_munchie->sourceRect->X = _munchie->sourceRect->Width * _munchie->frameCount; // change munchie sprite based on time
 	_cherry->sourceRect->X = _cherry->sourceRect->Width * _munchie->frameCount; // change cherry sprite based on munchie sprite/time
+}
+
+void Pacman::MoveRight(Player* object, float speed)
+{
+	object->position->X += speed; //Moves Pacman across X axis
+	object->direction = 0;
+}
+
+void Pacman::MoveLeft(Player* object, float speed)
+{
+	object->position->X -= speed; //Moves Pacman across X axis
+	object->direction = 2;
+}
+
+void Pacman::MoveUp(Player* object, float speed)
+{
+	object->position->Y -= speed; //Moves Pacman across X axis
+	object->direction = 3;
+}
+
+void Pacman::MoveDown(Player* object, float speed)
+{
+	object->position->Y += speed; //Moves Pacman across X axis
+	object->direction = 1;
 }

@@ -71,8 +71,18 @@ private:
 	void UpdatePacman(int elapsedTime);
 	void UpdateMunchie(int elapsedTime, int index);
 
+	//Movement methods
+	void MoveUp(Player* object, float speed);
+	void MoveDown(Player* object, float speed);
+	void MoveLeft(Player* object, float speed);
+	void MoveRight(Player* object, float speed);
+
 	// Data to represent Pacman
 	Player* _pacman;
+
+	// Data to represent Ghost player
+	Player* _ghostA;
+	Player* _ghostB;
 
 	// Data to represent Munchie
 	Enemy* _munchies[MUNCHIECOUNT];
