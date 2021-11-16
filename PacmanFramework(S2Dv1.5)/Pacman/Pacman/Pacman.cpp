@@ -108,6 +108,8 @@ void Pacman::Update(int elapsedTime)
 	//Gets current state of mouse
 	Input::MouseState* mouseState = Input::Mouse::GetState();
 
+	_pacman->boostTime += elapsedTime;
+
 	if (_startMenu->active)
 	{
 		CheckStart(keyboardState, Input::Keys::SPACE);
@@ -196,6 +198,8 @@ void Pacman::Draw(int elapsedTime)
 
 void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::MouseState* mouseState)
 {
+	float pacmanSpeed = _pacman->cPacmanSpeed * elapsedTime * _pacman->speedMultiplier;
+
 	//mouse input - REPOSITIONS CHERRY
 	if (mouseState->LeftButton == Input::ButtonState::PRESSED)
 	{
@@ -203,18 +207,71 @@ void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::
 		_cherry->position->Y = mouseState->Y;
 	}
 
-	// Check if SHIFT key pressed
-	if (keyboardState->IsKeyDown(Input::Keys::LEFTSHIFT))
+	//mouse input - PACMAN MOVEMENT OPTIONAL IMPLEMENTATION: MOVEMENT WITH MOUSE
+	//NOTE: if keeping this code, can put directional movement into functions for code reusability?
+	//NOTE 2: pacman can move diagonally using this method, if the mouse stays still & clicked for long enough. Solution?
+	if (mouseState->LeftButton == Input::ButtonState::PRESSED)
 	{
-		//apply multiplier
-		_pacman->speedMultiplier = 2.0f;
+		float xDist = _pacman->position->X - mouseState->X;
+		float yDist = _pacman->position->Y - mouseState->Y;
+
+		float xSquare = xDist * xDist;
+		float ySquare = yDist * yDist;
+
+		if (xSquare > ySquare)
+		{
+			//move in x direction
+			if (xDist >= 0)
+			{
+				_pacman->position->X -= pacmanSpeed; //Moves Pacman across X axis
+				_pacman->direction = 2;
+			}
+			else
+			{
+				_pacman->position->X += pacmanSpeed; //Moves Pacman across X axis
+				_pacman->direction = 0;
+			}
+		}
+		else
+		{
+			// move in y direction
+			if (yDist >= 0)
+			{
+				_pacman->position->Y -= pacmanSpeed; //Moves Pacman across X axis
+				_pacman->direction = 3;
+			}
+			else
+			{
+				_pacman->position->Y += pacmanSpeed; //Moves Pacman across X axis
+				_pacman->direction = 1;
+			}
+		}
 	}
-	else
+
+	//mouse input - SPEED BOOST OPTIONAL IMPLEMENTATION: LIMITED TIME/USE
+	if (mouseState->RightButton == Input::ButtonState::PRESSED && _pacman->boostTime >= 3000 && _pacman->availableBoosts > 0)
+	{
+		_pacman->speedMultiplier = 2.0f;
+		_pacman->availableBoosts--;
+		_pacman->boostTime = 0;
+	}
+	cout << _pacman->speedMultiplier << " " << _pacman->availableBoosts << " " << _pacman->boostTime << endl;
+
+	if (_pacman->boostTime >= 3000)
 	{
 		_pacman->speedMultiplier = 1.0f;
 	}
 
-	float pacmanSpeed = _pacman->cPacmanSpeed * elapsedTime * _pacman->speedMultiplier;
+	// Check if SHIFT key pressed
+	//if (keyboardState->IsKeyDown(Input::Keys::LEFTSHIFT))
+	//{
+		//apply multiplier
+		//_pacman->speedMultiplier = 2.0f;
+	//}
+	//else
+	//{
+	//	_pacman->speedMultiplier = 1.0f;
+	//}
 
 	// Checks if D key is pressed
 	if (keyboardState->IsKeyDown(Input::Keys::D)) {
@@ -235,6 +292,12 @@ void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::
 	else if (keyboardState->IsKeyDown(Input::Keys::S)) {
 		_pacman->position->Y += pacmanSpeed; //Moves Pacman across Y axis
 		_pacman->direction = 1;
+	}
+
+	//Checks if R key is pressed. Randomly moves cherry based on this.
+	if (keyboardState->IsKeyDown(Input::Keys::R))
+	{
+		_cherry->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 	}
 
 	//Toggles wall collision and wall wrapping.

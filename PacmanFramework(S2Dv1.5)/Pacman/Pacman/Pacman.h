@@ -30,6 +30,10 @@ struct Player
 	Vector2* position;
 	const int cFrameTime = 150;
 	bool invertAnim;
+
+	//Extra functions
+	int availableBoosts = 3;
+	int boostTime = 3000;
 };
 
 struct Enemy
