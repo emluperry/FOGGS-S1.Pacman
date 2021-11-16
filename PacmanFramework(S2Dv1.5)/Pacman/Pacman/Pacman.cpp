@@ -11,7 +11,8 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	srand(time(NULL));
 
 	_pacman = new Player();
-	_pacman->speedMultiplier = 0.1f;
+	_pacman->cPacmanSpeed = 0.1f;
+	_pacman->speedMultiplier = 1.0f;
 	_pacman->direction = 0;
 	_pacman->currentFrameTime = 0;
 	_pacman->frame = 0;
@@ -202,28 +203,41 @@ void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::
 		_cherry->position->Y = mouseState->Y;
 	}
 
+	// Check if SHIFT key pressed
+	if (keyboardState->IsKeyDown(Input::Keys::LEFTSHIFT))
+	{
+		//apply multiplier
+		_pacman->speedMultiplier = 2.0f;
+	}
+	else
+	{
+		_pacman->speedMultiplier = 1.0f;
+	}
+
+	float pacmanSpeed = _pacman->cPacmanSpeed * elapsedTime * _pacman->speedMultiplier;
 
 	// Checks if D key is pressed
 	if (keyboardState->IsKeyDown(Input::Keys::D)) {
-		_pacman->position->X += _pacman->speedMultiplier * elapsedTime; //Moves Pacman across X axis
+		_pacman->position->X += pacmanSpeed; //Moves Pacman across X axis
 		_pacman->direction = 0;
 	}
 	// Checks if A key is pressed
 	else if (keyboardState->IsKeyDown(Input::Keys::A)) {
-		_pacman->position->X -= _pacman->speedMultiplier * elapsedTime; //Moves Pacman across X axis
+		_pacman->position->X -= pacmanSpeed; //Moves Pacman across X axis
 		_pacman->direction = 2;
 	}
 	// Checks if W key is pressed
 	else if (keyboardState->IsKeyDown(Input::Keys::W)) {
-		_pacman->position->Y -= _pacman->speedMultiplier * elapsedTime; //Moves Pacman across Y axis
+		_pacman->position->Y -= pacmanSpeed; //Moves Pacman across Y axis
 		_pacman->direction = 3;
 	}
 	// Checks if S key is pressed
 	else if (keyboardState->IsKeyDown(Input::Keys::S)) {
-		_pacman->position->Y += _pacman->speedMultiplier * elapsedTime; //Moves Pacman across Y axis
+		_pacman->position->Y += pacmanSpeed; //Moves Pacman across Y axis
 		_pacman->direction = 1;
 	}
 
+	//Toggles wall collision and wall wrapping.
 	if (keyboardState->IsKeyDown(Input::Keys::TAB))
 				_hasCollision = !_hasCollision;
 }

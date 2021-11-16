@@ -20,6 +20,7 @@ using namespace S2D;
 //Structure Definition
 struct Player
 {
+	float cPacmanSpeed;
 	float speedMultiplier;
 	int currentFrameTime;
 	int direction;
