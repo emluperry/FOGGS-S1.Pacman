@@ -41,7 +41,12 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 		_ghosts[i] = new MovingEnemy();
 		_ghosts[i]->direction = 0;
 		_ghosts[i]->speed = 0.2f;
+		_ghosts[i]->frame = 0;
+		_ghosts[i]->currentFrameTime = 0;
+		_ghosts[i]->target = new Vector2(-1,-1);
 	}
+	_ghosts[1]->direction = 1;
+	_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 
 	_hasCollision = true;
 
@@ -85,6 +90,7 @@ Pacman::~Pacman()
 	{
 		delete _ghosts[i]->sourceRect;
 		delete _ghosts[i]->position;
+		delete _ghosts[i]->target;
 		delete _ghosts[i];
 	}
 	delete[] _ghosts;
@@ -122,13 +128,18 @@ void Pacman::LoadContent()
 	_cherry->position = new Vector2(500.0f, 450.0f);
 
 	//load Ghosts
-	Texture2D* ghostTex = new Texture2D();
-	ghostTex->Load("Textures/GhostBlue.png", false);
+	_ghosts[0]->texture = new Texture2D();
+	_ghosts[0]->texture->Load("Textures/GhostGreen.png", false);
+	_ghosts[1]->texture = new Texture2D();
+	_ghosts[1]->texture->Load("Textures/GhostRed.png", false);
+	_ghosts[2]->texture = new Texture2D();
+	_ghosts[2]->texture->Load("Textures/GhostPink.png", false);
+	_ghosts[3]->texture = new Texture2D();
+	_ghosts[3]->texture->Load("Textures/GhostOrange.png", false);
 	for (int i = 0; i < GHOSTCOUNT; i++)
 	{
-		_ghosts[i]->texture = ghostTex;
 		_ghosts[i]->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
-		_ghosts[i]->sourceRect = new Rect(0.0f, 0.0f, 20, 20);
+		_ghosts[i]->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
 	}
 
 	// Set string position
@@ -169,6 +180,10 @@ void Pacman::Update(int elapsedTime)
 
 			UpdatePacman(elapsedTime);
 
+			UpdateGreen(_ghosts[0], elapsedTime);
+			UpdateRed(_ghosts[1], elapsedTime);
+			UpdatePink(_ghosts[2], elapsedTime);
+			UpdateOrange(_ghosts[3], elapsedTime);
 			for (int i = 0; i < GHOSTCOUNT; i++)
 			{
 				UpdateGhost(_ghosts[i], elapsedTime);
@@ -474,24 +489,154 @@ void Pacman::UpdateMunchie(int elapsedTime, int index)
 	_cherry->sourceRect->X = _cherry->sourceRect->Width * _munchie->frameCount; // change cherry sprite based on munchie sprite/time
 }
 
+//horizontal patrol
+//vertical patrol
+//border patrol
+//random patrol
+
 void Pacman::UpdateGhost(MovingEnemy* ghost, int elapsedTime)
 {
+	ghost->currentFrameTime += elapsedTime;
+	if (ghost->currentFrameTime > ghost->cFrameTime) {
+		ghost->frame++; //increases animation frame
+		if (ghost->frame >= 3)
+			ghost->frame = 0;
+
+		ghost->currentFrameTime -= ghost->cFrameTime;
+	}
+
+	ghost->sourceRect->X = ghost->sourceRect->Width * ghost->frame;
+	ghost->sourceRect->Y = ghost->sourceRect->Height * ghost->direction; // change source rect based on direction and frame.
+}
+
+void Pacman::UpdateGreen(MovingEnemy* ghost, int elapsedTime)
+{
+	//horizontal
 	if (ghost->direction == 0)
 	{
 		ghost->position->X += ghost->speed * elapsedTime;
 	}
-	else if (ghost->direction == 1)
+	else if (ghost->direction == 2)
 	{
 		ghost->position->X -= ghost->speed * elapsedTime;
 	}
 
 	if (ghost->position->X + ghost->sourceRect->Width >= Graphics::GetViewportWidth())
 	{
-		ghost->direction = 1;
+		ghost->direction = 2;
 	}
 	else if (ghost->position->X <= 0)
 	{
 		ghost->direction = 0;
+	}
+}
+
+void Pacman::UpdateRed(MovingEnemy* ghost, int elapsedTime)
+{
+	//vertical
+	if (ghost->direction == 1)
+	{
+		ghost->position->Y += ghost->speed * elapsedTime;
+	}
+	else if (ghost->direction == 3)
+	{
+		ghost->position->Y -= ghost->speed * elapsedTime;
+	}
+
+	if (ghost->position->Y + ghost->sourceRect->Height >= Graphics::GetViewportHeight())
+	{
+		ghost->direction = 3;
+	}
+	else if (ghost->position->Y <= 0)
+	{
+		ghost->direction = 1;
+	}
+}
+
+void Pacman::UpdatePink(MovingEnemy* ghost, int elapsedTime)
+{
+	//horizontal
+	if (ghost->direction == 0)
+	{
+		ghost->position->X += ghost->speed * elapsedTime;
+	}
+	else if (ghost->direction == 1)
+	{
+		ghost->position->Y += ghost->speed * elapsedTime;
+	}
+	else if (ghost->direction == 2)
+	{
+		ghost->position->X -= ghost->speed * elapsedTime;
+	}
+	else if (ghost->direction == 3)
+	{
+		ghost->position->Y -= ghost->speed * elapsedTime;
+	}
+
+	if (ghost->position->X + ghost->sourceRect->Width > Graphics::GetViewportWidth())
+	{
+		ghost->position->X = Graphics::GetViewportWidth() - ghost->sourceRect->Width;
+		ghost->direction = 1;
+	}
+	else if (ghost->position->Y + ghost->sourceRect->Height > Graphics::GetViewportHeight())
+	{
+		ghost->position->Y = Graphics::GetViewportHeight() - ghost->sourceRect->Height;
+		ghost->direction = 2;
+	}
+	else if (ghost->position->X < 0)
+	{
+		ghost->position->X = 0;
+		ghost->direction = 3;
+	}
+	else if (ghost->position->Y < 0)
+	{
+		ghost->position->Y = 0;
+		ghost->direction = 0;
+	}
+}
+
+void Pacman::UpdateOrange(MovingEnemy* ghost, int elapsedTime)
+{
+	float xDist = ghost->position->X - ghost->target->X;
+	float yDist = ghost->position->Y - ghost->target->Y;
+
+	float xSquare = xDist * xDist;
+	float ySquare = yDist * yDist;
+
+	if (xSquare > ySquare)
+	{
+		//move in x direction
+		if (xDist >= 0)
+		{
+			ghost->position->X -= ghost->speed * elapsedTime;
+			ghost->direction = 2;
+		}
+		else
+		{
+			ghost->position->X += ghost->speed * elapsedTime;
+			ghost->direction = 0;
+		}
+	}
+	else
+	{
+		// move in y direction
+		if (yDist >= 0)
+		{
+			ghost->position->Y -= ghost->speed * elapsedTime;
+			ghost->direction = 3;
+		}
+		else
+		{
+			ghost->position->Y += ghost->speed * elapsedTime;
+			ghost->direction = 1;
+		}
+	}
+	if (ghost->position->X < ghost->target->X + 1 &&
+		ghost->position->X + ghost->sourceRect->Width > ghost->target->X &&
+		ghost->position->Y < ghost->target->Y + 1 &&
+		ghost->position->Y + ghost->sourceRect->Height > ghost->target->Y)
+	{
+		ghost->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 	}
 }
 

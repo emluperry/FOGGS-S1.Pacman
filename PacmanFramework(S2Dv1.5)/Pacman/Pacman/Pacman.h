@@ -56,6 +56,10 @@ struct MovingEnemy
 	Rect* sourceRect;
 	int direction;
 	float speed;
+	const int cFrameTime = 500;
+	int currentFrameTime;
+	int frame;
+	Vector2* target;
 };
 
 struct Menu
@@ -83,6 +87,11 @@ private:
 	void UpdateMunchie(int elapsedTime, int index);
 
 	void CheckGhostCollisions();
+
+	void UpdateGreen(MovingEnemy*, int elapsedTime);
+	void UpdateRed(MovingEnemy*, int elapsedTime);
+	void UpdatePink(MovingEnemy*, int elapsedTime);
+	void UpdateOrange(MovingEnemy*, int elapsedTime);
 	void UpdateGhost(MovingEnemy*, int elapsedTime);
 
 	Player* _pacman;
