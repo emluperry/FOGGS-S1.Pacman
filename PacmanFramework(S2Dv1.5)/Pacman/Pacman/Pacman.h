@@ -9,6 +9,7 @@
 #endif
 
 #define MUNCHIECOUNT 50
+#define GHOSTCOUNT 4
 
 // Just need to include main header file
 #include "S2D/S2D.h"
@@ -30,6 +31,7 @@ struct Player
 	Vector2* position;
 	const int cFrameTime = 150;
 	bool invertAnim;
+	bool dead;
 
 	//Extra functions
 	int availableBoosts = 3;
@@ -45,6 +47,15 @@ struct Enemy
 	const int cFrameTime = 500;
 	int currentFrameTime;
 	bool isEaten;
+};
+
+struct MovingEnemy
+{
+	Vector2* position;
+	Texture2D* texture;
+	Rect* sourceRect;
+	int direction;
+	float speed;
 };
 
 struct Menu
@@ -71,14 +82,13 @@ private:
 	void UpdatePacman(int elapsedTime);
 	void UpdateMunchie(int elapsedTime, int index);
 
-	// Data to represent Pacman
+	void CheckGhostCollisions();
+	void UpdateGhost(MovingEnemy*, int elapsedTime);
+
 	Player* _pacman;
-
-	// Data to represent Munchie
 	Enemy* _munchies[MUNCHIECOUNT];
-
-	// Data to rep. cherry
 	Enemy* _cherry;
+	MovingEnemy* _ghosts[GHOSTCOUNT];
 
 	// Position for String
 	Vector2* _stringPosition;
