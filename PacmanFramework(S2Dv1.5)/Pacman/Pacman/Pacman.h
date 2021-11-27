@@ -62,6 +62,13 @@ struct MovingEnemy
 	Vector2* target;
 };
 
+struct Wall
+{
+	Vector2* position;
+	Texture2D* texture;
+	Rect* sourceRect;
+};
+
 struct Menu
 {
 	//use of both paused and keydown prevents screen flickering
@@ -74,6 +81,8 @@ struct Menu
 class Pacman : public Game
 {
 private:
+
+	void LoadLevel();
 	//Input methods
 	void Input(int elapsedTime, Input::KeyboardState* state, Input::MouseState* mouseState);
 
@@ -98,6 +107,8 @@ private:
 	Enemy* _munchies[MUNCHIECOUNT];
 	Enemy* _cherry;
 	MovingEnemy* _ghosts[GHOSTCOUNT];
+	vector<Wall>* _walls;
+	int wallCount = -1;
 
 	// Position for String
 	Vector2* _stringPosition;

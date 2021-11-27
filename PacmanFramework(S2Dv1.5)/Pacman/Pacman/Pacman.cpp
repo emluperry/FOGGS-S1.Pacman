@@ -3,6 +3,8 @@
 #include <iostream>
 #include <sstream>
 #include <time.h>
+#include <fstream>
+#include <string>
 
 Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 {
@@ -64,6 +66,14 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 
 Pacman::~Pacman()
 {
+	delete _walls->at(0).texture;
+	for (int i = 0; i < wallCount; i++)
+	{
+		delete _walls->at(i).sourceRect;
+		delete _walls->at(i).position;
+	}
+	_walls->clear();
+
 	delete _pacman->texture;
 	delete _pacman->sourceRect;
 	delete _pacman->position;
@@ -143,6 +153,8 @@ void Pacman::LoadContent()
 		_ghosts[i]->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
 	}
 
+	LoadLevel();
+
 	// Set string position
 	_stringPosition = new Vector2(10.0f, 25.0f);
 
@@ -151,6 +163,47 @@ void Pacman::LoadContent()
 	_menuBackground->Load("Textures/Transparency.png", false);
 	_menuRectangle = new Rect(0.0f, 0.0f, Graphics::GetViewportWidth(), Graphics::GetViewportHeight());
 	_menuStringPosition = new Vector2(Graphics::GetViewportWidth() / 2.0f, Graphics::GetViewportHeight() / 2.0f);
+}
+
+void Pacman::LoadLevel()
+{
+	vector<string>* lines = new vector<string>();
+	fstream stream;
+	stringstream ss;
+	ss << "level.txt";
+	stream.open(ss.str(), fstream::in);
+
+	char* line;
+	do
+	{
+		line = new char[256];
+		stream.getline(line, 256);
+		string* sline = new string(line);
+		lines->push_back(*sline);
+		delete sline;
+	} while (!stream.eof());
+	delete[] line;
+
+	Texture2D* wallTex = new Texture2D();
+	wallTex->Load("Textures/wall.png", true);
+
+	for (int j = 0; j < Graphics::GetViewportHeight() / 32; j++)
+	{
+		for (int i = 0; i < Graphics::GetViewportWidth() / 32; i++)
+		{
+			if (lines[j][i] == "x")
+			{
+				Wall* wall = new Wall();
+				wall->position = new Vector2(i * 32, j * 32);
+				wall->texture = wallTex;
+				wall->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
+				_walls->push_back(*wall);
+				wallCount++;
+			}
+		}
+	}
+
+	delete lines;
 }
 
 void Pacman::Update(int elapsedTime)
@@ -232,6 +285,11 @@ void Pacman::Draw(int elapsedTime)
 	stream << "Pacman X: " << _pacman->position->X << " Y: " << _pacman->position->Y;
 
 	SpriteBatch::BeginDraw(); // Starts Drawing
+
+	for (int i = 0; i < wallCount; i++)
+	{
+		SpriteBatch::Draw(_walls->at(i).texture, _walls->at(i).position, _walls->at(i).sourceRect);
+	}
 
 	if (!_pacman->dead)
 	{
