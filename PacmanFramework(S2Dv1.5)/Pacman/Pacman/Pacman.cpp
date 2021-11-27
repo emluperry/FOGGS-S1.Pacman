@@ -4,8 +4,6 @@
 #include <sstream>
 #include <time.h>
 
-// NOTE TO SELF: Pacman is dressed as a ghost. When creating ghost assets, make the ghosts try to dress as pacman! (Change colour of blue ghost to yellow)
-
 Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 {
 	srand(time(NULL));
@@ -26,7 +24,6 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 		_munchies[i] = new Enemy();
 		_munchies[i]->currentFrameTime = 0;
 		_munchies[i]->frameCount = rand() % 1;
-		_munchies[i]->isEaten = false;
 	}
 
 	//cherry
@@ -75,6 +72,10 @@ Pacman::~Pacman()
 	delete _munchies[0]->texture;
 	for (int i = 0; i < MUNCHIECOUNT; i++)
 	{
+		if (_munchies[i] == NULL)
+		{
+			continue;
+		}
 		delete _munchies[i]->sourceRect;
 		delete _munchies[i]->position;
 		delete _munchies[i];
@@ -175,6 +176,10 @@ void Pacman::Update(int elapsedTime)
 
 			for (int i = 0; i < MUNCHIECOUNT; i++)
 			{
+				if (_munchies[i] == NULL)
+				{
+					continue;
+				}
 				UpdateMunchie(elapsedTime, i);
 			}
 
@@ -194,12 +199,19 @@ void Pacman::Update(int elapsedTime)
 
 			for (int i = 0; i < MUNCHIECOUNT; i++)
 			{
+				if (_munchies[i] == NULL)
+				{
+					continue;
+				}
 				if (_munchies[i]->position->X < _pacman->position->X + _pacman->sourceRect->Width &&
 					_munchies[i]->position->X + _munchies[i]->sourceRect->Width > _pacman->position->X &&
 					_munchies[i]->position->Y < _pacman->position->Y + _pacman->sourceRect->Height &&
 					_munchies[i]->position->Y + _munchies[i]->sourceRect->Height > _pacman->position->Y)
 				{
-					_munchies[i]->isEaten = true;
+					delete _munchies[i]->sourceRect;
+					delete _munchies[i]->position;
+					delete _munchies[i];
+					_munchies[i] = NULL;
 				}
 			}
 			if (_cherry->position->X < _pacman->position->X + _pacman->sourceRect->Width &&
@@ -228,10 +240,11 @@ void Pacman::Draw(int elapsedTime)
 
 	for (int i = 0; i < MUNCHIECOUNT; i++)
 	{
-		if (!_munchies[i]->isEaten)
+		if (_munchies[i] == NULL)
 		{
-			SpriteBatch::Draw(_munchies[i]->texture, _munchies[i]->position, _munchies[i]->sourceRect); // Draws munchie
+			continue;
 		}
+		SpriteBatch::Draw(_munchies[i]->texture, _munchies[i]->position, _munchies[i]->sourceRect); // Draws munchie
 	}
 
 	for (int i = 0; i < GHOSTCOUNT; i++)
@@ -325,7 +338,6 @@ void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::
 		_pacman->availableBoosts--;
 		_pacman->boostTime = 0;
 	}
-	cout << _pacman->speedMultiplier << " " << _pacman->availableBoosts << " " << _pacman->boostTime << endl;
 
 	if (_pacman->boostTime >= 3000)
 	{
