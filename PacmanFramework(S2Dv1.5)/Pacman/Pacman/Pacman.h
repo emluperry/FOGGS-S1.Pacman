@@ -107,8 +107,7 @@ private:
 	Enemy* _munchies[MUNCHIECOUNT];
 	Enemy* _cherry;
 	MovingEnemy* _ghosts[GHOSTCOUNT];
-	vector<Wall>* _walls;
-	int wallCount = -1;
+	vector<vector<Wall*>>* _walls;
 
 	// Position for String
 	Vector2* _stringPosition;

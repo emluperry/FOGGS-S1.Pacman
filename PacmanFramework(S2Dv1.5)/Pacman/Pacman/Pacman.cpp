@@ -66,13 +66,19 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 
 Pacman::~Pacman()
 {
-	delete _walls->at(0).texture;
-	for (int i = 0; i < wallCount; i++)
+	delete (*_walls)[0][0]->texture;
+	int width = _walls->size();
+	int height = _walls->at(0).size();
+	for (int y = 0; y < height; ++y)
 	{
-		delete _walls->at(i).sourceRect;
-		delete _walls->at(i).position;
+		for (int x = 0; x < width; ++x)
+		{
+			delete (*_walls)[x][y]->sourceRect;
+			delete (*_walls)[x][y]->position;
+		}
 	}
 	_walls->clear();
+	delete _walls;
 
 	delete _pacman->texture;
 	delete _pacman->sourceRect;
@@ -167,43 +173,57 @@ void Pacman::LoadContent()
 
 void Pacman::LoadLevel()
 {
+	// Load the level
 	vector<string>* lines = new vector<string>();
 	fstream stream;
 	stringstream ss;
 	ss << "level.txt";
 	stream.open(ss.str(), fstream::in);
 
-	char* line;
-	do
+	char* line = new char[256];
+	stream.getline(line, 256);
+	string* sline = new string(line);
+	int width = sline->size();
+	while (!stream.eof())
 	{
-		line = new char[256];
-		stream.getline(line, 256);
-		string* sline = new string(line);
 		lines->push_back(*sline);
+		stream.getline(line, 256);
 		delete sline;
-	} while (!stream.eof());
+		sline = new string(line);
+	}
+
 	delete[] line;
+	delete sline;
+
+	// Allocate the tile grid.
+	_walls = new vector<vector<Wall*>>(width, vector<Wall*>(lines->size()));
 
 	Texture2D* wallTex = new Texture2D();
-	wallTex->Load("Textures/wall.png", true);
-
-	for (int j = 0; j < Graphics::GetViewportHeight() / 32; j++)
+	wallTex->Load("Textures/wall.png", false);
+	// Loop over every tile position,
+	for (int y = 0; y < lines->size(); ++y)
 	{
-		for (int i = 0; i < Graphics::GetViewportWidth() / 32; i++)
+		for (int x = 0; x < width; ++x)
 		{
-			if (lines[j][i] == "x")
+			// to load each tile.
+			char tileType = lines->at(y)[x];
+			if (tileType == 'x')
 			{
 				Wall* wall = new Wall();
-				wall->position = new Vector2(i * 32, j * 32);
+				wall->position = new Vector2(x * 32, y * 32);
 				wall->texture = wallTex;
 				wall->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
-				_walls->push_back(*wall);
-				wallCount++;
+				(*_walls)[x][y] = wall;
+			}
+			else
+			{
+				(*_walls)[x][y] = nullptr;
 			}
 		}
 	}
 
 	delete lines;
+	stream.close();
 }
 
 void Pacman::Update(int elapsedTime)
@@ -286,9 +306,17 @@ void Pacman::Draw(int elapsedTime)
 
 	SpriteBatch::BeginDraw(); // Starts Drawing
 
-	for (int i = 0; i < wallCount; i++)
+	int width = _walls->size();
+	int height = _walls->at(0).size();
+	for (int y = 0; y < height; ++y)
 	{
-		SpriteBatch::Draw(_walls->at(i).texture, _walls->at(i).position, _walls->at(i).sourceRect);
+		for (int x = 0; x < width; ++x)
+		{
+			if ((*_walls)[x][y] != nullptr)
+			{
+				SpriteBatch::Draw((*_walls)[x][y]->texture, (*_walls)[x][y]->position, (*_walls)[x][y]->sourceRect);
+			}
+		}
 	}
 
 	if (!_pacman->dead)
