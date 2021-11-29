@@ -8,7 +8,7 @@
 	#endif
 #endif
 
-#define MUNCHIECOUNT 50
+#define MUNCHIECOUNT 88
 #define GHOSTCOUNT 4
 
 // Just need to include main header file
@@ -47,6 +47,7 @@ struct Enemy
 	const int cFrameTime = 500;
 	int currentFrameTime;
 	bool isEaten;
+	int pointWorth;
 };
 
 struct MovingEnemy
@@ -89,13 +90,17 @@ private:
 	//Check methods
 	void CheckPaused(Input::KeyboardState* state, Input::Keys pauseKey);
 	void CheckStart(Input::KeyboardState* state, Input::Keys pauseKey);
+	void CheckWin();
+
+	void CheckCollisions(int elapsedTime);
 	void CheckViewportCollision();
+	void CheckGhostCollisions();
+	bool CheckObjectCollision(Enemy* object);
+	void CheckWallCollision(int elapsedTime);
 
 	//Update methods
 	void UpdatePacman(int elapsedTime);
 	void UpdateMunchie(int elapsedTime, int index);
-
-	void CheckGhostCollisions();
 
 	void UpdateGreen(MovingEnemy*, int elapsedTime);
 	void UpdateRed(MovingEnemy*, int elapsedTime);
@@ -109,6 +114,9 @@ private:
 	MovingEnemy* _ghosts[GHOSTCOUNT];
 	vector<vector<Wall*>>* _walls;
 
+	int score;
+	int numMunchies;
+
 	// Position for String
 	Vector2* _stringPosition;
 
@@ -121,6 +129,7 @@ private:
 
 	Menu* _pauseMenu;
 	Menu* _startMenu;
+	Menu* _winMenu;
 
 public:
 

@@ -26,13 +26,16 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 		_munchies[i] = new Enemy();
 		_munchies[i]->currentFrameTime = 0;
 		_munchies[i]->frameCount = rand() % 1;
+		_munchies[i]->pointWorth = 100;
 	}
+	numMunchies = MUNCHIECOUNT;
 
 	//cherry
 	_cherry = new Enemy();
 	_cherry->currentFrameTime = 0;
 	_cherry->frameCount = rand() % 1;
 	_cherry->isEaten = false;
+	_cherry->pointWorth = 1000;
 
 	//ghosts
 	for (int i = 0; i < GHOSTCOUNT; i++)
@@ -48,6 +51,7 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 
 	_hasCollision = true;
+	score = 0;
 
 	_pauseMenu = new Menu();
 	_pauseMenu->active = false;
@@ -55,6 +59,9 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 
 	_startMenu = new Menu();
 	_startMenu->active = true;
+
+	_winMenu = new Menu();
+	_winMenu->active = false;
 
 	//Initialise important Game aspects
 	Graphics::Initialise(argc, argv, this, 1024, 768, false, 25, 25, "Pacman", 60);
@@ -118,6 +125,7 @@ Pacman::~Pacman()
 	delete _menuStringPosition;
 	delete _startMenu;
 	delete _pauseMenu;
+	delete _winMenu;
 }
 
 void Pacman::LoadContent()
@@ -128,21 +136,21 @@ void Pacman::LoadContent()
 	_pacman->position = new Vector2(350.0f, 350.0f);
 	_pacman->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
 
-	// Load Munchies
-	Texture2D* munchieTex = new Texture2D();
-	munchieTex->Load("Textures/Munchie.tga", true);
-	for (int i = 0; i < MUNCHIECOUNT; i++)
-	{
-		_munchies[i]->texture = munchieTex;
-		_munchies[i]->sourceRect = new Rect(0.0f, 0.0f, 12, 12);
-		_munchies[i]->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
-	}
+	// Load Munchies - now loaded in LoadLevel
+	//Texture2D* munchieTex = new Texture2D();
+	//munchieTex->Load("Textures/Munchie.tga", true);
+	//for (int i = 0; i < MUNCHIECOUNT; i++)
+	//{
+	//	_munchies[i]->texture = munchieTex;
+	//	_munchies[i]->sourceRect = new Rect(0.0f, 0.0f, 12, 12);
+	//	_munchies[i]->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
+	//}
 
 	//Load Cherry
 	_cherry->texture = new Texture2D;
 	_cherry->texture->Load("Textures/Cherry.png", false);
 	_cherry->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
-	_cherry->position = new Vector2(500.0f, 450.0f);
+	_cherry->position = new Vector2(500.0f, 472.0f);
 
 	//load Ghosts
 	_ghosts[0]->texture = new Texture2D();
@@ -200,6 +208,9 @@ void Pacman::LoadLevel()
 
 	Texture2D* wallTex = new Texture2D();
 	wallTex->Load("Textures/wall.png", false);
+	Texture2D* munchieTex = new Texture2D();
+	munchieTex->Load("Textures/Munchie.tga", true);
+	int index = 0;
 	// Loop over every tile position,
 	for (int y = 0; y < lines->size(); ++y)
 	{
@@ -210,14 +221,22 @@ void Pacman::LoadLevel()
 			if (tileType == 'x')
 			{
 				Wall* wall = new Wall();
-				wall->position = new Vector2(x * 32, y * 32);
+				wall->position = new Vector2(-96 + x * 32, y * 32);
 				wall->texture = wallTex;
-				wall->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
+				wall->sourceRect = new Rect(0.0f, 0.0f, 20, 20);
 				(*_walls)[x][y] = wall;
 			}
 			else
 			{
 				(*_walls)[x][y] = nullptr;
+			}
+			
+			if (tileType == 'o')
+			{
+				_munchies[index]->texture = munchieTex;
+				_munchies[index]->sourceRect = new Rect(0.0f, 0.0f, 12, 12);
+				_munchies[index]->position = new Vector2(-96 + x * 32, y * 32);
+				index++;
 			}
 		}
 	}
@@ -266,34 +285,8 @@ void Pacman::Update(int elapsedTime)
 			{
 				UpdateGhost(_ghosts[i], elapsedTime);
 			}
-			CheckGhostCollisions();
 
-			CheckViewportCollision();
-
-			for (int i = 0; i < MUNCHIECOUNT; i++)
-			{
-				if (_munchies[i] == NULL)
-				{
-					continue;
-				}
-				if (_munchies[i]->position->X < _pacman->position->X + _pacman->sourceRect->Width &&
-					_munchies[i]->position->X + _munchies[i]->sourceRect->Width > _pacman->position->X &&
-					_munchies[i]->position->Y < _pacman->position->Y + _pacman->sourceRect->Height &&
-					_munchies[i]->position->Y + _munchies[i]->sourceRect->Height > _pacman->position->Y)
-				{
-					delete _munchies[i]->sourceRect;
-					delete _munchies[i]->position;
-					delete _munchies[i];
-					_munchies[i] = NULL;
-				}
-			}
-			if (_cherry->position->X < _pacman->position->X + _pacman->sourceRect->Width &&
-				_cherry->position->X + _cherry->sourceRect->Width > _pacman->position->X &&
-				_cherry->position->Y < _pacman->position->Y + _pacman->sourceRect->Height &&
-				_cherry->position->Y + _cherry->sourceRect->Height > _pacman->position->Y)
-			{
-				_cherry->isEaten = true;
-			}
+			CheckCollisions(elapsedTime);
 		}
 	}
 }
@@ -302,7 +295,7 @@ void Pacman::Draw(int elapsedTime)
 {
 	// Allows us to easily create a string
 	std::stringstream stream;
-	stream << "Pacman X: " << _pacman->position->X << " Y: " << _pacman->position->Y;
+	stream << "Pacman X: " << (int)_pacman->position->X << " Y: " << (int)_pacman->position->Y << " Boosts: " << _pacman->availableBoosts << " Score: " << score;
 
 	SpriteBatch::BeginDraw(); // Starts Drawing
 
@@ -357,6 +350,14 @@ void Pacman::Draw(int elapsedTime)
 	if (_startMenu->active) {
 		std::stringstream menuStream;
 		menuStream << "PACMAN!\nPress SPACE to start.";
+
+		SpriteBatch::Draw(_menuBackground, _menuRectangle, nullptr);
+		SpriteBatch::DrawString(menuStream.str().c_str(), _menuStringPosition, Color::Yellow);
+	}
+
+	if (_winMenu->active) {
+		std::stringstream menuStream;
+		menuStream << "YOU WIN!\nFinal score: " << score;
 
 		SpriteBatch::Draw(_menuBackground, _menuRectangle, nullptr);
 		SpriteBatch::DrawString(menuStream.str().c_str(), _menuStringPosition, Color::Yellow);
@@ -491,61 +492,11 @@ void Pacman::CheckStart(Input::KeyboardState* state, Input::Keys startKey)
 	}
 }
 
-void Pacman::CheckViewportCollision()
+void Pacman::CheckWin()
 {
-	if (!_hasCollision)
+	if (numMunchies == 0)
 	{
-		//prevents movement off right edge
-		if (_pacman->position->X - _pacman->sourceRect->Width > Graphics::GetViewportWidth()) //1024 is game width
-		{
-			//teleport to left wall
-			_pacman->position->X = 0 - _pacman->sourceRect->Width;
-		}
-		//prevent movement off left edge
-		if (_pacman->position->X + _pacman->sourceRect->Width < 0)
-		{
-			//teleport to right wall
-			_pacman->position->X = Graphics::GetViewportWidth();
-		}
-		// off bottom edge
-		if (_pacman->position->Y > Graphics::GetViewportHeight()) //1024 is game width
-		{
-			//teleport to top wall
-			_pacman->position->Y = 0 - _pacman->sourceRect->Height;
-		}
-		// off top edge
-		if (_pacman->position->Y + _pacman->sourceRect->Height < 0)
-		{
-			//teleport to bottom wall
-			_pacman->position->Y = Graphics::GetViewportHeight();
-		}
-	}
-	else if (_hasCollision)
-	{
-		//prevents movement off right edge
-		if (_pacman->position->X + _pacman->sourceRect->Width > Graphics::GetViewportWidth()) //1024 is game width
-		{
-			//block movement
-			_pacman->position->X = Graphics::GetViewportWidth() - +_pacman->sourceRect->Width;
-		}
-		//prevent movement off left edge
-		if (_pacman->position->X < 0)
-		{
-			//teleport to right wall
-			_pacman->position->X = 0;
-		}
-		// off bottom edge
-		if (_pacman->position->Y + _pacman->sourceRect->Height > Graphics::GetViewportHeight()) //1024 is game width
-		{
-			//block movement
-			_pacman->position->Y = Graphics::GetViewportHeight() - _pacman->sourceRect->Height;
-		}
-		// off top edge
-		if (_pacman->position->Y < 0)
-		{
-			//block movement
-			_pacman->position->Y = 0;
-		}
+		_winMenu->active = true;
 	}
 }
 
@@ -738,6 +689,92 @@ void Pacman::UpdateOrange(MovingEnemy* ghost, int elapsedTime)
 	}
 }
 
+void Pacman::CheckCollisions(int elapsedTime)
+{
+	CheckGhostCollisions();
+	CheckViewportCollision();
+	for (int i = 0; i < MUNCHIECOUNT; i++)
+	{
+		if (_munchies[i] == NULL)
+		{
+			continue;
+		}
+		if (CheckObjectCollision(_munchies[i]))
+		{
+			score += _munchies[i]->pointWorth;
+			delete _munchies[i]->sourceRect;
+			delete _munchies[i]->position;
+			delete _munchies[i];
+			_munchies[i] = NULL;
+			numMunchies--;
+		}
+	}
+	if (_cherry->isEaten == false && CheckObjectCollision(_cherry))
+	{
+		score += _cherry->pointWorth;
+		_cherry->isEaten = true;
+	}
+	CheckWallCollision(elapsedTime);
+}
+
+void Pacman::CheckViewportCollision()
+{
+	if (!_hasCollision)
+	{
+		//prevents movement off right edge
+		if (_pacman->position->X - _pacman->sourceRect->Width > Graphics::GetViewportWidth()) //1024 is game width
+		{
+			//teleport to left wall
+			_pacman->position->X = 0 - _pacman->sourceRect->Width;
+		}
+		//prevent movement off left edge
+		if (_pacman->position->X + _pacman->sourceRect->Width < 0)
+		{
+			//teleport to right wall
+			_pacman->position->X = Graphics::GetViewportWidth();
+		}
+		// off bottom edge
+		if (_pacman->position->Y > Graphics::GetViewportHeight()) //1024 is game width
+		{
+			//teleport to top wall
+			_pacman->position->Y = 0 - _pacman->sourceRect->Height;
+		}
+		// off top edge
+		if (_pacman->position->Y + _pacman->sourceRect->Height < 0)
+		{
+			//teleport to bottom wall
+			_pacman->position->Y = Graphics::GetViewportHeight();
+		}
+	}
+	else if (_hasCollision)
+	{
+		//prevents movement off right edge
+		if (_pacman->position->X + _pacman->sourceRect->Width > Graphics::GetViewportWidth()) //1024 is game width
+		{
+			//block movement
+			_pacman->position->X = Graphics::GetViewportWidth() - +_pacman->sourceRect->Width;
+		}
+		//prevent movement off left edge
+		if (_pacman->position->X < 0)
+		{
+			//teleport to right wall
+			_pacman->position->X = 0;
+		}
+		// off bottom edge
+		if (_pacman->position->Y + _pacman->sourceRect->Height > Graphics::GetViewportHeight()) //1024 is game width
+		{
+			//block movement
+			_pacman->position->Y = Graphics::GetViewportHeight() - _pacman->sourceRect->Height;
+		}
+		// off top edge
+		if (_pacman->position->Y < 0)
+		{
+			//block movement
+			_pacman->position->Y = 0;
+		}
+	}
+}
+
 void Pacman::CheckGhostCollisions()
 {
 	for (int i = 0; i < GHOSTCOUNT; i++)
@@ -749,6 +786,60 @@ void Pacman::CheckGhostCollisions()
 		{
 			_pacman->dead = true;
 			i = GHOSTCOUNT;
+		}
+	}
+}
+
+bool Pacman::CheckObjectCollision(Enemy* object)
+{
+	if (object->position->X < _pacman->position->X + _pacman->sourceRect->Width &&
+		object->position->X + object->sourceRect->Width > _pacman->position->X &&
+		object->position->Y < _pacman->position->Y + _pacman->sourceRect->Height &&
+		object->position->Y + object->sourceRect->Height > _pacman->position->Y)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void Pacman::CheckWallCollision(int elapsedTime)
+{
+	int maxWalls = _walls->size();
+	int width = _walls->size();
+	int height = _walls->at(0).size();
+	for (int y = 0; y < height; ++y)
+	{
+		for (int x = 0; x < width; ++x)
+		{
+			if ((*_walls)[x][y] == NULL)
+			{
+				continue;
+			}
+			if ((*_walls)[x][y]->position->X < _pacman->position->X + _pacman->sourceRect->Width &&
+				(*_walls)[x][y]->position->X + (*_walls)[x][y]->sourceRect->Width > _pacman->position->X &&
+				(*_walls)[x][y]->position->Y < _pacman->position->Y + _pacman->sourceRect->Height &&
+				(*_walls)[x][y]->position->Y + (*_walls)[x][y]->sourceRect->Height > _pacman->position->Y)
+			{
+				if (_pacman->direction == 0)
+				{
+					_pacman->position->X -= _pacman->cPacmanSpeed * _pacman->speedMultiplier * elapsedTime;
+				}
+				else if (_pacman->direction == 2)
+				{
+					_pacman->position->X += _pacman->cPacmanSpeed * _pacman->speedMultiplier * elapsedTime;
+				}
+				else if (_pacman->direction == 1)
+				{
+					_pacman->position->Y -= _pacman->cPacmanSpeed * _pacman->speedMultiplier * elapsedTime;
+				}
+				else if (_pacman->direction == 3)
+				{
+					_pacman->position->Y += _pacman->cPacmanSpeed * _pacman->speedMultiplier * elapsedTime;
+				}
+			}
 		}
 	}
 }
