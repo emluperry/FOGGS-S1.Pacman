@@ -19,6 +19,8 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	_pacman->currentFrameTime = 0;
 	_pacman->frame = 0;
 	_pacman->invertAnim = false;
+	_pacman->availableBoosts = 3;
+	_pacman->boostTime = 3000;
 
 	//munchies
 	for (int i = 0; i < MUNCHIECOUNT; i++)
@@ -42,13 +44,11 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	{
 		_ghosts[i] = new MovingEnemy();
 		_ghosts[i]->direction = 0;
-		_ghosts[i]->speed = 0.2f;
+		_ghosts[i]->speed = 0.1f;
 		_ghosts[i]->frame = 0;
 		_ghosts[i]->currentFrameTime = 0;
 		_ghosts[i]->target = new Vector2(-1,-1);
 	}
-	_ghosts[1]->direction = 1;
-	_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 
 	_hasCollision = true;
 	score = 0;
@@ -62,6 +62,9 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 
 	_winMenu = new Menu();
 	_winMenu->active = false;
+
+	_loseMenu = new Menu();
+	_loseMenu->active = false;
 
 	//Initialise important Game aspects
 	Graphics::Initialise(argc, argv, this, 1024, 768, false, 25, 25, "Pacman", 60);
@@ -120,12 +123,15 @@ Pacman::~Pacman()
 	delete[] _ghosts;
 
 	delete _stringPosition;
-	delete _menuBackground;
-	delete _menuRectangle;
-	delete _menuStringPosition;
+
+	delete _startMenu->_menuBackground;
+	delete _startMenu->_menuRectangle;
+	delete _startMenu->_menuStringPosition;
+
 	delete _startMenu;
 	delete _pauseMenu;
 	delete _winMenu;
+	delete _loseMenu;
 }
 
 void Pacman::LoadContent()
@@ -166,6 +172,9 @@ void Pacman::LoadContent()
 		_ghosts[i]->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 		_ghosts[i]->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
 	}
+	//_ghosts[1]->direction = 1;
+	_ghosts[1]->target = _pacman->position;
+	_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 
 	LoadLevel();
 
@@ -173,10 +182,26 @@ void Pacman::LoadContent()
 	_stringPosition = new Vector2(10.0f, 25.0f);
 
 	// set menu parameters
-	_menuBackground = new Texture2D();
-	_menuBackground->Load("Textures/Transparency.png", false);
-	_menuRectangle = new Rect(0.0f, 0.0f, Graphics::GetViewportWidth(), Graphics::GetViewportHeight());
-	_menuStringPosition = new Vector2(Graphics::GetViewportWidth() / 2.0f, Graphics::GetViewportHeight() / 2.0f);
+	Texture2D* _menuBg = new Texture2D();
+	_menuBg->Load("Textures/Transparency.png", false);
+	Rect* _menuRect = new Rect(0.0f, 0.0f, Graphics::GetViewportWidth(), Graphics::GetViewportHeight());
+	Vector2* _menuStringPos = new Vector2(Graphics::GetViewportWidth() / 2.0f, Graphics::GetViewportHeight() / 2.0f);
+
+	_startMenu->_menuBackground = _menuBg;
+	_startMenu->_menuRectangle = _menuRect;
+	_startMenu->_menuStringPosition = _menuStringPos;
+
+	_pauseMenu->_menuBackground = _menuBg;
+	_pauseMenu->_menuRectangle = _menuRect;
+	_pauseMenu->_menuStringPosition = _menuStringPos;
+
+	_loseMenu->_menuBackground = _menuBg;
+	_loseMenu->_menuRectangle = _menuRect;
+	_loseMenu->_menuStringPosition = _menuStringPos;
+
+	_winMenu->_menuBackground = _menuBg;
+	_winMenu->_menuRectangle = _menuRect;
+	_winMenu->_menuStringPosition = _menuStringPos;
 }
 
 void Pacman::LoadLevel()
@@ -262,7 +287,7 @@ void Pacman::Update(int elapsedTime)
 	{
 		CheckPaused(keyboardState, Input::Keys::P);
 
-		if (!_pauseMenu->active) {
+		if (!_pauseMenu->active && !_loseMenu->active && !_winMenu->active) {
 
 			Input(elapsedTime, keyboardState, mouseState);
 
@@ -343,24 +368,32 @@ void Pacman::Draw(int elapsedTime)
 		std::stringstream menuStream;
 		menuStream << "PAUSED!";
 
-		SpriteBatch::Draw(_menuBackground, _menuRectangle, nullptr);
-		SpriteBatch::DrawString(menuStream.str().c_str(), _menuStringPosition, Color::Red);
+		SpriteBatch::Draw(_pauseMenu->_menuBackground, _pauseMenu->_menuRectangle, nullptr);
+		SpriteBatch::DrawString(menuStream.str().c_str(), _pauseMenu->_menuStringPosition, Color::Red);
 	}
 
 	if (_startMenu->active) {
 		std::stringstream menuStream;
 		menuStream << "PACMAN!\nPress SPACE to start.";
 
-		SpriteBatch::Draw(_menuBackground, _menuRectangle, nullptr);
-		SpriteBatch::DrawString(menuStream.str().c_str(), _menuStringPosition, Color::Yellow);
+		SpriteBatch::Draw(_startMenu->_menuBackground, _startMenu->_menuRectangle, nullptr);
+		SpriteBatch::DrawString(menuStream.str().c_str(), _startMenu->_menuStringPosition, Color::Yellow);
 	}
 
 	if (_winMenu->active) {
 		std::stringstream menuStream;
 		menuStream << "YOU WIN!\nFinal score: " << score;
 
-		SpriteBatch::Draw(_menuBackground, _menuRectangle, nullptr);
-		SpriteBatch::DrawString(menuStream.str().c_str(), _menuStringPosition, Color::Yellow);
+		SpriteBatch::Draw(_winMenu->_menuBackground, _winMenu->_menuRectangle, nullptr);
+		SpriteBatch::DrawString(menuStream.str().c_str(), _winMenu->_menuStringPosition, Color::Yellow);
+	}
+
+	if (_loseMenu->active) {
+		std::stringstream menuStream;
+		menuStream << "YOU LOSE...\nFinal score: " << score;
+
+		SpriteBatch::Draw(_winMenu->_menuBackground, _winMenu->_menuRectangle, nullptr);
+		SpriteBatch::DrawString(menuStream.str().c_str(), _winMenu->_menuStringPosition, Color::Yellow);
 	}
 
 	SpriteBatch::EndDraw(); // Ends Drawing
@@ -377,47 +410,6 @@ void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::
 		_cherry->position->Y = mouseState->Y;
 	}
 
-	//mouse input - PACMAN MOVEMENT OPTIONAL IMPLEMENTATION: MOVEMENT WITH MOUSE
-	//NOTE: if keeping this code, can put directional movement into functions for code reusability?
-	//NOTE 2: pacman can move diagonally using this method, if the mouse stays still & clicked for long enough. Solution?
-	if (mouseState->LeftButton == Input::ButtonState::PRESSED)
-	{
-		float xDist = _pacman->position->X - mouseState->X;
-		float yDist = _pacman->position->Y - mouseState->Y;
-
-		float xSquare = xDist * xDist;
-		float ySquare = yDist * yDist;
-
-		if (xSquare > ySquare)
-		{
-			//move in x direction
-			if (xDist >= 0)
-			{
-				_pacman->position->X -= pacmanSpeed; //Moves Pacman across X axis
-				_pacman->direction = 2;
-			}
-			else
-			{
-				_pacman->position->X += pacmanSpeed; //Moves Pacman across X axis
-				_pacman->direction = 0;
-			}
-		}
-		else
-		{
-			// move in y direction
-			if (yDist >= 0)
-			{
-				_pacman->position->Y -= pacmanSpeed; //Moves Pacman across X axis
-				_pacman->direction = 3;
-			}
-			else
-			{
-				_pacman->position->Y += pacmanSpeed; //Moves Pacman across X axis
-				_pacman->direction = 1;
-			}
-		}
-	}
-
 	//mouse input - SPEED BOOST OPTIONAL IMPLEMENTATION: LIMITED TIME/USE
 	if (mouseState->RightButton == Input::ButtonState::PRESSED && _pacman->boostTime >= 3000 && _pacman->availableBoosts > 0)
 	{
@@ -430,17 +422,6 @@ void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::
 	{
 		_pacman->speedMultiplier = 1.0f;
 	}
-
-	// Check if SHIFT key pressed
-	//if (keyboardState->IsKeyDown(Input::Keys::LEFTSHIFT))
-	//{
-		//apply multiplier
-		//_pacman->speedMultiplier = 2.0f;
-	//}
-	//else
-	//{
-	//	_pacman->speedMultiplier = 1.0f;
-	//}
 
 	// Checks if D key is pressed
 	if (keyboardState->IsKeyDown(Input::Keys::D)) {
@@ -472,6 +453,64 @@ void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::
 	//Toggles wall collision and wall wrapping.
 	if (keyboardState->IsKeyDown(Input::Keys::TAB))
 				_hasCollision = !_hasCollision;
+}
+
+void PacmanDash()
+{
+	// Check if SHIFT key pressed
+    //if (keyboardState->IsKeyDown(Input::Keys::LEFTSHIFT))
+    //{
+	    //apply multiplier
+	    //_pacman->speedMultiplier = 2.0f;
+    //}
+    //else
+    //{
+    	//_pacman->speedMultiplier = 1.0f;
+    //}
+}
+
+void PacmanFollowMouse()
+{
+	//mouse input - PACMAN MOVEMENT OPTIONAL IMPLEMENTATION: MOVEMENT WITH MOUSE
+	//NOTE: if keeping this code, can put directional movement into functions for code reusability?
+	//NOTE 2: pacman can move diagonally using this method, if the mouse stays still & clicked for long enough. Solution?
+	//if (mouseState->LeftButton == Input::ButtonState::PRESSED)
+	//{
+	//	float xDist = _pacman->position->X - mouseState->X;
+	//	float yDist = _pacman->position->Y - mouseState->Y;
+
+	//	float xSquare = xDist * xDist;
+	//	float ySquare = yDist * yDist;
+
+	//	if (xSquare > ySquare)
+	//	{
+	//		//move in x direction
+	//		if (xDist >= 0)
+	//		{
+	//			_pacman->position->X -= pacmanSpeed; //Moves Pacman across X axis
+	//			_pacman->direction = 2;
+	//		}
+	//		else
+	//		{
+	//			_pacman->position->X += pacmanSpeed; //Moves Pacman across X axis
+	//			_pacman->direction = 0;
+	//		}
+	//	}
+	//	else
+	//	{
+	//		// move in y direction
+	//		if (yDist >= 0)
+	//		{
+	//			_pacman->position->Y -= pacmanSpeed; //Moves Pacman across X axis
+	//			_pacman->direction = 3;
+	//		}
+	//		else
+	//		{
+	//			_pacman->position->Y += pacmanSpeed; //Moves Pacman across X axis
+	//			_pacman->direction = 1;
+	//		}
+	//	}
+	//}
 }
 
 void Pacman::CheckPaused(Input::KeyboardState* state, Input::Keys pauseKey)
@@ -646,6 +685,43 @@ void Pacman::UpdatePink(MovingEnemy* ghost, int elapsedTime)
 
 void Pacman::UpdateOrange(MovingEnemy* ghost, int elapsedTime)
 {
+	MoveTowardsTarget(ghost, elapsedTime);
+
+	if (ghost->position->X < ghost->target->X + 1 &&
+		ghost->position->X + ghost->sourceRect->Width > ghost->target->X &&
+		ghost->position->Y < ghost->target->Y + 1 &&
+		ghost->position->Y + ghost->sourceRect->Height > ghost->target->Y)
+	{
+		ghost->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
+	}
+}
+
+void Pacman::CheckProximity(MovingEnemy* ghost, int elapsedTime)
+{
+	for (int i = 0; i < GHOSTCOUNT; i++)
+	{
+		if (_ghosts[i]->position->X < _pacman->position->X + _pacman->sourceRect->Width &&
+			_ghosts[i]->position->X + _ghosts[i]->sourceRect->Width > _pacman->position->X &&
+			_ghosts[i]->position->Y < _pacman->position->Y + _pacman->sourceRect->Height &&
+			_ghosts[i]->position->Y + _ghosts[i]->sourceRect->Height > _pacman->position->Y)
+		{
+			//mode = chase
+		}
+		else
+		{
+			//mode = patrol
+		}
+	}
+}
+
+void Pacman::ChasePacman(MovingEnemy* ghost, int elapsedTime)
+{
+	MoveTowardsTarget(ghost, elapsedTime);
+	ghost->target = _pacman->position;
+}
+
+void Pacman::MoveTowardsTarget(MovingEnemy* ghost, int elapsedTime)
+{
 	float xDist = ghost->position->X - ghost->target->X;
 	float yDist = ghost->position->Y - ghost->target->Y;
 
@@ -679,13 +755,6 @@ void Pacman::UpdateOrange(MovingEnemy* ghost, int elapsedTime)
 			ghost->position->Y += ghost->speed * elapsedTime;
 			ghost->direction = 1;
 		}
-	}
-	if (ghost->position->X < ghost->target->X + 1 &&
-		ghost->position->X + ghost->sourceRect->Width > ghost->target->X &&
-		ghost->position->Y < ghost->target->Y + 1 &&
-		ghost->position->Y + ghost->sourceRect->Height > ghost->target->Y)
-	{
-		ghost->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 	}
 }
 
@@ -786,6 +855,7 @@ void Pacman::CheckGhostCollisions()
 		{
 			_pacman->dead = true;
 			i = GHOSTCOUNT;
+			_loseMenu->active = true;
 		}
 	}
 }

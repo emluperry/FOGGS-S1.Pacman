@@ -34,8 +34,8 @@ struct Player
 	bool dead;
 
 	//Extra functions
-	int availableBoosts = 3;
-	int boostTime = 3000;
+	int availableBoosts;
+	int boostTime;
 };
 
 struct Enemy
@@ -75,6 +75,9 @@ struct Menu
 	//use of both paused and keydown prevents screen flickering
 	bool active;
 	bool keyDown;
+	Texture2D* _menuBackground;
+	Rect* _menuRectangle;
+	Vector2* _menuStringPosition;
 };
 
 
@@ -107,6 +110,9 @@ private:
 	void UpdatePink(MovingEnemy*, int elapsedTime);
 	void UpdateOrange(MovingEnemy*, int elapsedTime);
 	void UpdateGhost(MovingEnemy*, int elapsedTime);
+	void CheckProximity(MovingEnemy*, int elapsedTime);
+	void ChasePacman(MovingEnemy*, int elapsedTime);
+	void MoveTowardsTarget(MovingEnemy*, int elapsedTime);
 
 	Player* _pacman;
 	Enemy* _munchies[MUNCHIECOUNT];
@@ -123,13 +129,10 @@ private:
 	bool _hasCollision;
 
 	// Data for menus
-	Texture2D* _menuBackground;
-	Rect* _menuRectangle;
-	Vector2* _menuStringPosition;
-
 	Menu* _pauseMenu;
 	Menu* _startMenu;
 	Menu* _winMenu;
+	Menu* _loseMenu;
 
 public:
 
