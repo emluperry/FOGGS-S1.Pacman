@@ -134,6 +134,8 @@ private:
 	Menu* _winMenu;
 	Menu* _loseMenu;
 
+	SoundEffect* _pop;
+
 public:
 
 	/// <summary> Constructs the Pacman class. </summary>

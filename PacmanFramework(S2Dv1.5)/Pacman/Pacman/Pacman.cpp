@@ -66,12 +66,23 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	_loseMenu = new Menu();
 	_loseMenu->active = false;
 
+	_pop = new SoundEffect();
+
 	//Initialise important Game aspects
+	Audio::Initialise();
 	Graphics::Initialise(argc, argv, this, 1024, 768, false, 25, 25, "Pacman", 60);
 	Input::Initialise();
 
 	// Start the Game Loop - This calls Update and Draw in game loop
 	Graphics::StartGameLoop();
+	if (!Audio::IsInitialised())
+	{
+		cout << "Audio is not initialised." << endl;
+	}
+	if (!_pop->IsLoaded())
+	{
+		cout << "_pop member sfx has not loaded." << endl;
+	}
 }
 
 Pacman::~Pacman()
@@ -132,6 +143,8 @@ Pacman::~Pacman()
 	delete _pauseMenu;
 	delete _winMenu;
 	delete _loseMenu;
+
+	delete _pop;
 }
 
 void Pacman::LoadContent()
@@ -172,8 +185,8 @@ void Pacman::LoadContent()
 		_ghosts[i]->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 		_ghosts[i]->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
 	}
-	//_ghosts[1]->direction = 1;
-	_ghosts[1]->target = _pacman->position;
+	_ghosts[1]->direction = 1;
+	//_ghosts[1]->target = _pacman->position;
 	_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 
 	LoadLevel();
@@ -202,6 +215,8 @@ void Pacman::LoadContent()
 	_winMenu->_menuBackground = _menuBg;
 	_winMenu->_menuRectangle = _menuRect;
 	_winMenu->_menuStringPosition = _menuStringPos;
+
+	_pop->Load("Sounds/pop.wav");
 }
 
 void Pacman::LoadLevel()
@@ -770,6 +785,7 @@ void Pacman::CheckCollisions(int elapsedTime)
 		}
 		if (CheckObjectCollision(_munchies[i]))
 		{
+			Audio::Play(_pop);
 			score += _munchies[i]->pointWorth;
 			delete _munchies[i]->sourceRect;
 			delete _munchies[i]->position;
