@@ -135,6 +135,11 @@ private:
 	Menu* _loseMenu;
 
 	SoundEffect* _pop;
+	SoundEffect* _music;
+	SoundEffect* _death;
+	SoundEffect* _warp;
+	SoundEffect* _win;
+	SoundEffect* _collision;
 
 public:
 

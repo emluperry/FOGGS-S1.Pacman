@@ -50,7 +50,8 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 		_ghosts[i]->target = new Vector2(-1,-1);
 	}
 
-	_hasCollision = true;
+	//can be toggled by TAB
+	_hasCollision = false;
 	score = 0;
 
 	_pauseMenu = new Menu();
@@ -67,6 +68,11 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	_loseMenu->active = false;
 
 	_pop = new SoundEffect();
+	_music = new SoundEffect();
+	_death = new SoundEffect();
+	_warp = new SoundEffect();
+	_win = new SoundEffect();
+	_collision = new SoundEffect();
 
 	//Initialise important Game aspects
 	Audio::Initialise();
@@ -145,6 +151,11 @@ Pacman::~Pacman()
 	delete _loseMenu;
 
 	delete _pop;
+	delete _death;
+	delete _music;
+	delete _warp;
+	delete _win;
+	delete _collision;
 }
 
 void Pacman::LoadContent()
@@ -217,6 +228,15 @@ void Pacman::LoadContent()
 	_winMenu->_menuStringPosition = _menuStringPos;
 
 	_pop->Load("Sounds/pop.wav");
+	_death->Load("Sounds/death.wav");
+	_warp->Load("Sounds/warp.wav");
+	// source: https://freesound.org/people/LittleRobotSoundFactory/sounds/270319/
+	_win->Load("Sounds/win.wav");
+	_collision->Load("Sounds/collision.wav");
+	_collision->SetPitch(0.1);
+	_music->Load("Sounds/music.wav");
+	_music->SetLooping(true);
+	Audio::Play(_music);
 }
 
 void Pacman::LoadLevel()
@@ -297,6 +317,10 @@ void Pacman::Update(int elapsedTime)
 	if (_startMenu->active)
 	{
 		CheckStart(keyboardState, Input::Keys::SPACE);
+	}
+	else if (_winMenu->active || _loseMenu->active)
+	{
+		return;
 	}
 	else
 	{
@@ -533,6 +557,15 @@ void Pacman::CheckPaused(Input::KeyboardState* state, Input::Keys pauseKey)
 	if (state->IsKeyDown(pauseKey) && !_pauseMenu->keyDown) {
 		_pauseMenu->keyDown = true;
 		_pauseMenu->active = !_pauseMenu->active;
+
+		if (_pauseMenu->active == true)
+		{
+			Audio::Pause(_music);
+		}
+		else
+		{
+			Audio::Resume(_music);
+		}
 	}
 	if (state->IsKeyUp(pauseKey)) {
 		_pauseMenu->keyDown = false;
@@ -551,6 +584,8 @@ void Pacman::CheckWin()
 	if (numMunchies == 0)
 	{
 		_winMenu->active = true;
+		Audio::Stop(_music);
+		Audio::Play(_win);
 	}
 }
 
@@ -792,6 +827,7 @@ void Pacman::CheckCollisions(int elapsedTime)
 			delete _munchies[i];
 			_munchies[i] = NULL;
 			numMunchies--;
+			CheckWin();
 		}
 	}
 	if (_cherry->isEaten == false && CheckObjectCollision(_cherry))
@@ -811,24 +847,28 @@ void Pacman::CheckViewportCollision()
 		{
 			//teleport to left wall
 			_pacman->position->X = 0 - _pacman->sourceRect->Width;
+			Audio::Play(_warp);
 		}
 		//prevent movement off left edge
 		if (_pacman->position->X + _pacman->sourceRect->Width < 0)
 		{
 			//teleport to right wall
 			_pacman->position->X = Graphics::GetViewportWidth();
+			Audio::Play(_warp);
 		}
 		// off bottom edge
 		if (_pacman->position->Y > Graphics::GetViewportHeight()) //1024 is game width
 		{
 			//teleport to top wall
 			_pacman->position->Y = 0 - _pacman->sourceRect->Height;
+			Audio::Play(_warp);
 		}
 		// off top edge
 		if (_pacman->position->Y + _pacman->sourceRect->Height < 0)
 		{
 			//teleport to bottom wall
 			_pacman->position->Y = Graphics::GetViewportHeight();
+			Audio::Play(_warp);
 		}
 	}
 	else if (_hasCollision)
@@ -872,6 +912,8 @@ void Pacman::CheckGhostCollisions()
 			_pacman->dead = true;
 			i = GHOSTCOUNT;
 			_loseMenu->active = true;
+			Audio::Play(_death);
+			Audio::Stop(_music);
 		}
 	}
 }
@@ -909,6 +951,10 @@ void Pacman::CheckWallCollision(int elapsedTime)
 				(*_walls)[x][y]->position->Y < _pacman->position->Y + _pacman->sourceRect->Height &&
 				(*_walls)[x][y]->position->Y + (*_walls)[x][y]->sourceRect->Height > _pacman->position->Y)
 			{
+				if (_collision->GetState() != SoundEffectState::PLAYING)
+				{
+					Audio::Play(_collision);
+				}
 				if (_pacman->direction == 0)
 				{
 					_pacman->position->X -= _pacman->cPacmanSpeed * _pacman->speedMultiplier * elapsedTime;
