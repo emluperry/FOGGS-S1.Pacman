@@ -22,15 +22,30 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	_pacman->availableBoosts = 3;
 	_pacman->boostTime = 3000;
 
+	LoadLevel();
+	munchieCount = 0;
+
+	for (int y = 0; y < lines->size(); ++y)
+	{
+		for (int x = 0; x < lines->at(0).size(); ++x)
+		{
+			if (lines->at(y)[x] == 'o')
+			{
+				munchieCount++;
+			}
+		}
+	}
+
+	_munchies = new Enemy*[munchieCount];
 	//munchies
-	for (int i = 0; i < MUNCHIECOUNT; i++)
+	for (int i = 0; i < munchieCount; i++)
 	{
 		_munchies[i] = new Enemy();
 		_munchies[i]->currentFrameTime = 0;
 		_munchies[i]->frameCount = rand() % 1;
 		_munchies[i]->pointWorth = 100;
 	}
-	numMunchies = MUNCHIECOUNT;
+	numMunchies = munchieCount;
 
 	//cherry
 	_cherry = new Enemy();
@@ -200,7 +215,7 @@ void Pacman::LoadContent()
 	//_ghosts[1]->target = _pacman->position;
 	_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 
-	LoadLevel();
+	BuildLevel();
 
 	// Set string position
 	_stringPosition = new Vector2(10.0f, 25.0f);
@@ -242,7 +257,7 @@ void Pacman::LoadContent()
 void Pacman::LoadLevel()
 {
 	// Load the level
-	vector<string>* lines = new vector<string>();
+	lines = new vector<string>();
 	fstream stream;
 	stringstream ss;
 	ss << "level.txt";
@@ -263,7 +278,13 @@ void Pacman::LoadLevel()
 	delete[] line;
 	delete sline;
 
+	stream.close();
+}
+
+void Pacman::BuildLevel()
+{
 	// Allocate the tile grid.
+	int width = lines->at(0).size();
 	_walls = new vector<vector<Wall*>>(width, vector<Wall*>(lines->size()));
 
 	Texture2D* wallTex = new Texture2D();
@@ -290,7 +311,7 @@ void Pacman::LoadLevel()
 			{
 				(*_walls)[x][y] = nullptr;
 			}
-			
+
 			if (tileType == 'o')
 			{
 				_munchies[index]->texture = munchieTex;
@@ -300,9 +321,7 @@ void Pacman::LoadLevel()
 			}
 		}
 	}
-
 	delete lines;
-	stream.close();
 }
 
 void Pacman::Update(int elapsedTime)

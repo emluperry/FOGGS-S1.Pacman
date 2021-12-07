@@ -13,6 +13,7 @@
 
 // Just need to include main header file
 #include "S2D/S2D.h"
+#include <string>
 
 // Reduces the amount of typing by including all classes in S2D namespace
 using namespace S2D;
@@ -87,6 +88,7 @@ class Pacman : public Game
 private:
 
 	void LoadLevel();
+	void BuildLevel();
 	//Input methods
 	void Input(int elapsedTime, Input::KeyboardState* state, Input::MouseState* mouseState);
 
@@ -115,12 +117,15 @@ private:
 	void MoveTowardsTarget(MovingEnemy*, int elapsedTime);
 
 	Player* _pacman;
-	Enemy* _munchies[MUNCHIECOUNT];
+	Enemy** _munchies;
 	Enemy* _cherry;
 	MovingEnemy* _ghosts[GHOSTCOUNT];
+
+	vector<string>* lines;
 	vector<vector<Wall*>>* _walls;
 
 	int score;
+	int munchieCount;
 	int numMunchies;
 
 	// Position for String
