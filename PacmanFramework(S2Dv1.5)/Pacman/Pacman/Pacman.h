@@ -74,13 +74,21 @@ struct Wall
 struct Menu
 {
 	//use of both paused and keydown prevents screen flickering
-	bool active;
 	bool keyDown;
 	Texture2D* _menuBackground;
 	Rect* _menuRectangle;
 	Vector2* _menuStringPosition;
 };
 
+enum State
+{
+	MainMenu = 0,
+	Playing,
+	Pause,
+	Win,
+	Lose,
+	HighScore
+};
 
 //Class Definition
 class Pacman : public Game
@@ -121,6 +129,7 @@ private:
 	Enemy* _cherry;
 	MovingEnemy* _ghosts[GHOSTCOUNT];
 
+
 	vector<string>* lines;
 	vector<vector<Wall*>>* _walls;
 
@@ -138,6 +147,8 @@ private:
 	Menu* _startMenu;
 	Menu* _winMenu;
 	Menu* _loseMenu;
+
+	State _gameState;
 
 	SoundEffect* _pop;
 	SoundEffect* _music;

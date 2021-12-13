@@ -69,18 +69,16 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	_hasCollision = false;
 	score = 0;
 
+	_gameState = MainMenu;
+
 	_pauseMenu = new Menu();
-	_pauseMenu->active = false;
 	_pauseMenu->keyDown = false;
 
 	_startMenu = new Menu();
-	_startMenu->active = true;
 
 	_winMenu = new Menu();
-	_winMenu->active = false;
 
 	_loseMenu = new Menu();
-	_loseMenu->active = false;
 
 	_pop = new SoundEffect();
 	_music = new SoundEffect();
@@ -333,11 +331,11 @@ void Pacman::Update(int elapsedTime)
 
 	_pacman->boostTime += elapsedTime;
 
-	if (_startMenu->active)
+	if (_gameState == MainMenu)
 	{
 		CheckStart(keyboardState, Input::Keys::SPACE);
 	}
-	else if (_winMenu->active || _loseMenu->active)
+	else if (_gameState == Win || _gameState == Lose)
 	{
 		return;
 	}
@@ -345,7 +343,7 @@ void Pacman::Update(int elapsedTime)
 	{
 		CheckPaused(keyboardState, Input::Keys::P);
 
-		if (!_pauseMenu->active && !_loseMenu->active && !_winMenu->active) {
+		if (_gameState != Pause && _gameState != Lose && _gameState != Win) {
 
 			Input(elapsedTime, keyboardState, mouseState);
 
@@ -378,80 +376,81 @@ void Pacman::Draw(int elapsedTime)
 {
 	// Allows us to easily create a string
 	std::stringstream stream;
-	stream << "Pacman X: " << (int)_pacman->position->X << " Y: " << (int)_pacman->position->Y << " Boosts: " << _pacman->availableBoosts << " Score: " << score;
 
 	SpriteBatch::BeginDraw(); // Starts Drawing
-
-	int width = _walls->size();
-	int height = _walls->at(0).size();
-	for (int y = 0; y < height; ++y)
+	int width;
+	int height;
+	switch (_gameState)
 	{
-		for (int x = 0; x < width; ++x)
-		{
-			if ((*_walls)[x][y] != nullptr)
-			{
-				SpriteBatch::Draw((*_walls)[x][y]->texture, (*_walls)[x][y]->position, (*_walls)[x][y]->sourceRect);
-			}
-		}
-	}
-
-	if (!_pacman->dead)
-	{
-		SpriteBatch::Draw(_pacman->texture, _pacman->position, _pacman->sourceRect); // Draws Pacman
-	}
-
-	for (int i = 0; i < MUNCHIECOUNT; i++)
-	{
-		if (_munchies[i] == NULL)
-		{
-			continue;
-		}
-		SpriteBatch::Draw(_munchies[i]->texture, _munchies[i]->position, _munchies[i]->sourceRect); // Draws munchie
-	}
-
-	for (int i = 0; i < GHOSTCOUNT; i++)
-	{
-		SpriteBatch::Draw(_ghosts[i]->texture, _ghosts[i]->position, _ghosts[i]->sourceRect); // Draws ghosts
-	}
-
-	if (!_cherry->isEaten)
-	{
-		SpriteBatch::Draw(_cherry->texture, _cherry->position, _cherry->sourceRect); //Draws cherry
-	}
-	
-	// Draws String
-	SpriteBatch::DrawString(stream.str().c_str(), _stringPosition, Color::Green);
-
-	if (_pauseMenu->active) {
-		std::stringstream menuStream;
-		menuStream << "PAUSED!";
-
-		SpriteBatch::Draw(_pauseMenu->_menuBackground, _pauseMenu->_menuRectangle, nullptr);
-		SpriteBatch::DrawString(menuStream.str().c_str(), _pauseMenu->_menuStringPosition, Color::Red);
-	}
-
-	if (_startMenu->active) {
-		std::stringstream menuStream;
-		menuStream << "PACMAN!\nPress SPACE to start.";
+	case MainMenu:
+		stream << "PACMAN!\nPress SPACE to start.";
 
 		SpriteBatch::Draw(_startMenu->_menuBackground, _startMenu->_menuRectangle, nullptr);
-		SpriteBatch::DrawString(menuStream.str().c_str(), _startMenu->_menuStringPosition, Color::Yellow);
-	}
+		SpriteBatch::DrawString(stream.str().c_str(), _startMenu->_menuStringPosition, Color::Yellow);
+		break;
+	case Playing:
+		stream << "Pacman X: " << (int)_pacman->position->X << " Y: " << (int)_pacman->position->Y << " Boosts: " << _pacman->availableBoosts << " Score: " << score;
 
-	if (_winMenu->active) {
-		std::stringstream menuStream;
-		menuStream << "YOU WIN!\nFinal score: " << score;
+		width = _walls->size();
+		height = _walls->at(0).size();
+		for (int y = 0; y < height; ++y)
+		{
+			for (int x = 0; x < width; ++x)
+			{
+				if ((*_walls)[x][y] != nullptr)
+				{
+					SpriteBatch::Draw((*_walls)[x][y]->texture, (*_walls)[x][y]->position, (*_walls)[x][y]->sourceRect);
+				}
+			}
+		}
+
+		if (!_pacman->dead)
+		{
+			SpriteBatch::Draw(_pacman->texture, _pacman->position, _pacman->sourceRect); // Draws Pacman
+		}
+
+		for (int i = 0; i < MUNCHIECOUNT; i++)
+		{
+			if (_munchies[i] == NULL)
+			{
+				continue;
+			}
+			SpriteBatch::Draw(_munchies[i]->texture, _munchies[i]->position, _munchies[i]->sourceRect); // Draws munchie
+		}
+
+		for (int i = 0; i < GHOSTCOUNT; i++)
+		{
+			SpriteBatch::Draw(_ghosts[i]->texture, _ghosts[i]->position, _ghosts[i]->sourceRect); // Draws ghosts
+		}
+
+		if (!_cherry->isEaten)
+		{
+			SpriteBatch::Draw(_cherry->texture, _cherry->position, _cherry->sourceRect); //Draws cherry
+		}
+
+		// Draws String
+		SpriteBatch::DrawString(stream.str().c_str(), _stringPosition, Color::Green);
+		break;
+	case Pause:
+		stream << "PAUSED!";
+
+		SpriteBatch::Draw(_pauseMenu->_menuBackground, _pauseMenu->_menuRectangle, nullptr);
+		SpriteBatch::DrawString(stream.str().c_str(), _pauseMenu->_menuStringPosition, Color::Red);
+		break;
+	case Win:
+		stream << "YOU WIN!\nFinal score: " << score;
 
 		SpriteBatch::Draw(_winMenu->_menuBackground, _winMenu->_menuRectangle, nullptr);
-		SpriteBatch::DrawString(menuStream.str().c_str(), _winMenu->_menuStringPosition, Color::Yellow);
-	}
-
-	if (_loseMenu->active) {
-		std::stringstream menuStream;
-		menuStream << "YOU LOSE...\nFinal score: " << score;
+		SpriteBatch::DrawString(stream.str().c_str(), _winMenu->_menuStringPosition, Color::Yellow);
+		break;
+	case Lose:
+		stream << "YOU LOSE...\nFinal score: " << score;
 
 		SpriteBatch::Draw(_winMenu->_menuBackground, _winMenu->_menuRectangle, nullptr);
-		SpriteBatch::DrawString(menuStream.str().c_str(), _winMenu->_menuStringPosition, Color::Yellow);
+		SpriteBatch::DrawString(stream.str().c_str(), _winMenu->_menuStringPosition, Color::Yellow);
+		break;
+	case HighScore:
+		break;
 	}
 
 	SpriteBatch::EndDraw(); // Ends Drawing
@@ -575,15 +574,16 @@ void Pacman::CheckPaused(Input::KeyboardState* state, Input::Keys pauseKey)
 {
 	if (state->IsKeyDown(pauseKey) && !_pauseMenu->keyDown) {
 		_pauseMenu->keyDown = true;
-		_pauseMenu->active = !_pauseMenu->active;
 
-		if (_pauseMenu->active == true)
+		if (_gameState == Pause)
 		{
-			Audio::Pause(_music);
+			_gameState = Playing;
+			Audio::Resume(_music);
 		}
 		else
 		{
-			Audio::Resume(_music);
+			_gameState = Pause;
+			Audio::Pause(_music);
 		}
 	}
 	if (state->IsKeyUp(pauseKey)) {
@@ -594,7 +594,7 @@ void Pacman::CheckPaused(Input::KeyboardState* state, Input::Keys pauseKey)
 void Pacman::CheckStart(Input::KeyboardState* state, Input::Keys startKey)
 {
 	if (state->IsKeyDown(startKey)) {
-		_startMenu->active = false;
+		_gameState = Playing;
 	}
 }
 
@@ -602,7 +602,7 @@ void Pacman::CheckWin()
 {
 	if (numMunchies == 0)
 	{
-		_winMenu->active = true;
+		_gameState = Win;
 		Audio::Stop(_music);
 		Audio::Play(_win);
 	}
@@ -930,7 +930,7 @@ void Pacman::CheckGhostCollisions()
 		{
 			_pacman->dead = true;
 			i = GHOSTCOUNT;
-			_loseMenu->active = true;
+			_gameState = Lose;
 			Audio::Play(_death);
 			Audio::Stop(_music);
 		}
