@@ -1,6 +1,7 @@
 #include "Pacman.h"
 
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <time.h>
 #include <fstream>
@@ -337,7 +338,12 @@ void Pacman::Update(int elapsedTime)
 	}
 	else if (_gameState == Win || _gameState == Lose)
 	{
-		return;
+		CheckHighScore();
+		CheckRestart(keyboardState, Input::Keys::R);
+	}
+	else if (_gameState == HighScore)
+	{
+		CheckRestart(keyboardState, Input::Keys::R);
 	}
 	else
 	{
@@ -450,6 +456,7 @@ void Pacman::Draw(int elapsedTime)
 		SpriteBatch::DrawString(stream.str().c_str(), _winMenu->_menuStringPosition, Color::Yellow);
 		break;
 	case HighScore:
+		stream = displayScores(scores);
 		break;
 	}
 
@@ -608,6 +615,157 @@ void Pacman::CheckWin()
 	}
 }
 
+void Pacman::CheckHighScore()
+{
+	loadScores(scores);
+	inputScore(scores);
+	//if score is higher than lowest on table do something
+	_gameState = HighScore;
+}
+
+void Pacman::CheckRestart(Input::KeyboardState* state, Input::Keys restartKey)
+{
+	if (state->IsKeyDown(restartKey)) {
+		_gameState = MainMenu;
+	}
+}
+
+//scoreboard methods
+void Pacman::loadScores(vector<ScoreEntry>& scores)
+{
+	ifstream inFile;
+	inFile.open("scores.txt");
+
+	if (inFile)
+	{
+		int entryNum = 1;
+		ScoreEntry* entry;
+
+		while (!inFile.eof())
+		{
+			entry = new ScoreEntry();
+			getline(inFile, entry->name);
+			string temp;
+			getline(inFile, temp);
+			try
+			{
+				entry->score = stoi(temp);
+			}
+			catch (string score)
+			{
+				cout << "File is incorrectly formatted." << endl;
+				exit(1);
+			}
+			entry->order = entryNum;
+			scores.push_back(*entry);
+			entryNum++;
+			delete entry;
+		}
+	}
+
+	inFile.close();
+}
+
+void Pacman::saveScores(vector<ScoreEntry>& scores)
+{
+	ofstream outFile;
+	outFile.open("scores.txt", ios::trunc);
+	for (int i = 0; i < scores.size(); i++)
+	{
+		outFile << scores[i].name << endl << scores[i].score;
+		if (i < scores.size() - 1)
+		{
+			outFile << endl;
+		}
+	}
+	outFile.close();
+}
+
+stringstream Pacman::inputScore(vector<ScoreEntry>& scores) //1.
+{
+	ScoreEntry newEntry;
+	newEntry.score = score;
+
+	stringstream output;
+	output << "SCOREBOARD" << endl << endl;
+	output << "Your score was " << score << endl;
+
+	if (scores.size() < 10 || scores[scores.size() - 1].score < newEntry.score)
+	{
+		output << "A valid score!" << endl << "Please enter your name." << endl;
+		getline(cin, newEntry.name);
+		newEntry.order = 0;
+
+		sortScores(scores, newEntry);
+		saveScores(scores);
+	}
+	else
+	{
+		output << "Sorry, your score wasn't high enough for the leaderboard." << endl;
+	}
+	return output;
+}
+
+void Pacman::sortScores(vector<ScoreEntry>& scores, ScoreEntry& newEntry)
+{
+	int size = scores.size();
+	bool moveUp = false;
+	ScoreEntry temp;
+	if (size == 0)
+	{
+		newEntry.order = 1;
+		scores.push_back(newEntry);
+	}
+	else
+	{
+		for (int i = 0; i < size; i++)
+		{
+			if (!moveUp && scores[i].score < newEntry.score)
+			{
+				newEntry.order = i + 1;
+				temp = scores[i];
+				scores[i] = newEntry;
+				moveUp = true;
+				continue;
+			}
+			if (moveUp)
+			{
+				temp.order = i + 1;
+				ScoreEntry temp2 = scores[i];
+				scores[i] = temp;
+				temp = temp2;
+			}
+		}
+		if (size < 10)
+		{
+			temp.order++;
+			scores.push_back(temp);
+		}
+	}
+}
+
+stringstream Pacman::displayScores(vector<ScoreEntry>& scores) //2.
+{
+	std::stringstream stream;
+	stream << "SCOREBOARD" << endl << endl;
+	if (scores.size() == 0)
+	{
+		stream << "There are no scores to display. Press enter to R to the menu." << endl;
+		return;
+	}
+
+	int size = scores.size();
+	for (int i = 0; i < size; i++)
+	{
+		stream << scores[i].order << setw(10) << scores[i].name << setw(10) << scores[i].score << endl;
+	}
+
+	stream << endl << "Press R to return to the menu." << endl;
+	return stream;
+}
+
+
+//game methods
 void Pacman::UpdatePacman(int elapsedTime)
 {
 	_pacman->currentFrameTime += elapsedTime;

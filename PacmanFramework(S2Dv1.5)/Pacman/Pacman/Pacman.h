@@ -90,6 +90,14 @@ enum State
 	HighScore
 };
 
+//for high score table
+struct ScoreEntry
+{
+	int order = 10;
+	string name;
+	int score;
+};
+
 //Class Definition
 class Pacman : public Game
 {
@@ -104,12 +112,21 @@ private:
 	void CheckPaused(Input::KeyboardState* state, Input::Keys pauseKey);
 	void CheckStart(Input::KeyboardState* state, Input::Keys pauseKey);
 	void CheckWin();
+	void CheckHighScore();
+	void CheckRestart(Input::KeyboardState* state, Input::Keys pauseKey);
 
 	void CheckCollisions(int elapsedTime);
 	void CheckViewportCollision();
 	void CheckGhostCollisions();
 	bool CheckObjectCollision(Enemy* object);
 	void CheckWallCollision(int elapsedTime);
+
+	//scoring
+	stringstream inputScore(vector<ScoreEntry>&);
+	stringstream displayScores(vector<ScoreEntry>&);
+	void loadScores(vector<ScoreEntry>&);
+	void sortScores(vector<ScoreEntry>&, ScoreEntry&);
+	void saveScores(vector<ScoreEntry>&);
 
 	//Update methods
 	void UpdatePacman(int elapsedTime);
@@ -129,10 +146,10 @@ private:
 	Enemy* _cherry;
 	MovingEnemy* _ghosts[GHOSTCOUNT];
 
-
 	vector<string>* lines;
 	vector<vector<Wall*>>* _walls;
 
+	vector<ScoreEntry> scores;
 	int score;
 	int munchieCount;
 	int numMunchies;
