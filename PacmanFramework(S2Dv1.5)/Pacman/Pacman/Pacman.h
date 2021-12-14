@@ -105,6 +105,7 @@ private:
 
 	void LoadLevel();
 	void BuildLevel();
+	void RestartLevel();
 	//Input methods
 	void Input(int elapsedTime, Input::KeyboardState* state, Input::MouseState* mouseState);
 
@@ -112,7 +113,7 @@ private:
 	void CheckPaused(Input::KeyboardState* state, Input::Keys pauseKey);
 	void CheckStart(Input::KeyboardState* state, Input::Keys pauseKey);
 	void CheckWin();
-	void CheckHighScore();
+	void CheckHighScore(Input::KeyboardState* state, Input::Keys pauseKey);
 	void CheckRestart(Input::KeyboardState* state, Input::Keys pauseKey);
 
 	void CheckCollisions(int elapsedTime);
@@ -122,11 +123,11 @@ private:
 	void CheckWallCollision(int elapsedTime);
 
 	//scoring
-	stringstream inputScore(vector<ScoreEntry>&);
-	stringstream displayScores(vector<ScoreEntry>&);
-	void loadScores(vector<ScoreEntry>&);
-	void sortScores(vector<ScoreEntry>&, ScoreEntry&);
-	void saveScores(vector<ScoreEntry>&);
+	stringstream InputName(vector<ScoreEntry>&);
+	stringstream DisplayScores(vector<ScoreEntry>&);
+	void LoadScores(vector<ScoreEntry>&);
+	void SortScores(vector<ScoreEntry>&, ScoreEntry&);
+	void SaveScores(vector<ScoreEntry>&);
 
 	//Update methods
 	void UpdatePacman(int elapsedTime);
@@ -164,6 +165,7 @@ private:
 	Menu* _startMenu;
 	Menu* _winMenu;
 	Menu* _loseMenu;
+	Menu* _scoreboard;
 
 	State _gameState;
 

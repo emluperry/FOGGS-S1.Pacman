@@ -24,20 +24,8 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	_pacman->boostTime = 3000;
 
 	LoadLevel();
-	munchieCount = 0;
 
-	for (int y = 0; y < lines->size(); ++y)
-	{
-		for (int x = 0; x < lines->at(0).size(); ++x)
-		{
-			if (lines->at(y)[x] == 'o')
-			{
-				munchieCount++;
-			}
-		}
-	}
-
-	_munchies = new Enemy*[munchieCount];
+	_munchies = new Enemy * [munchieCount];
 	//munchies
 	for (int i = 0; i < munchieCount; i++)
 	{
@@ -48,14 +36,6 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	}
 	numMunchies = munchieCount;
 
-	//cherry
-	_cherry = new Enemy();
-	_cherry->currentFrameTime = 0;
-	_cherry->frameCount = rand() % 1;
-	_cherry->isEaten = false;
-	_cherry->pointWorth = 1000;
-
-	//ghosts
 	for (int i = 0; i < GHOSTCOUNT; i++)
 	{
 		_ghosts[i] = new MovingEnemy();
@@ -63,14 +43,20 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 		_ghosts[i]->speed = 0.1f;
 		_ghosts[i]->frame = 0;
 		_ghosts[i]->currentFrameTime = 0;
-		_ghosts[i]->target = new Vector2(-1,-1);
+		_ghosts[i]->target = new Vector2(-1, -1);
 	}
+
+	_cherry = new Enemy();
+	_cherry->currentFrameTime = 0;
+	_cherry->frameCount = rand() % 1;
+	_cherry->isEaten = false;
+	_cherry->pointWorth = 1000;
 
 	//can be toggled by TAB
 	_hasCollision = false;
 	score = 0;
 
-	_gameState = MainMenu;
+	_gameState = State::MainMenu;
 
 	_pauseMenu = new Menu();
 	_pauseMenu->keyDown = false;
@@ -80,6 +66,9 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	_winMenu = new Menu();
 
 	_loseMenu = new Menu();
+
+	_scoreboard = new Menu();
+	_scoreboard->keyDown = false;
 
 	_pop = new SoundEffect();
 	_music = new SoundEffect();
@@ -114,17 +103,15 @@ Pacman::~Pacman()
 	{
 		for (int x = 0; x < width; ++x)
 		{
-			delete (*_walls)[x][y]->sourceRect;
-			delete (*_walls)[x][y]->position;
+			if ((*_walls)[x][y] != nullptr)
+			{
+				delete (*_walls)[x][y]->sourceRect;
+				delete (*_walls)[x][y]->position;
+			}
 		}
 	}
 	_walls->clear();
 	delete _walls;
-
-	delete _pacman->texture;
-	delete _pacman->sourceRect;
-	delete _pacman->position;
-	delete _pacman;
 
 	delete _munchies[0]->texture;
 	for (int i = 0; i < MUNCHIECOUNT; i++)
@@ -151,7 +138,11 @@ Pacman::~Pacman()
 		delete _ghosts[i]->target;
 		delete _ghosts[i];
 	}
-	delete[] _ghosts;
+
+	delete _pacman->texture;
+	delete _pacman->sourceRect;
+	delete _pacman->position;
+	delete _pacman;
 
 	delete _stringPosition;
 
@@ -163,6 +154,8 @@ Pacman::~Pacman()
 	delete _pauseMenu;
 	delete _winMenu;
 	delete _loseMenu;
+	delete _scoreboard->_menuStringPosition;
+	delete _scoreboard;
 
 	delete _pop;
 	delete _death;
@@ -170,10 +163,13 @@ Pacman::~Pacman()
 	delete _warp;
 	delete _win;
 	delete _collision;
+
+	delete lines;
 }
 
 void Pacman::LoadContent()
 {
+	BuildLevel();
 	// Load Pacman
 	_pacman->texture = new Texture2D();
 	_pacman->texture->Load("Textures/Pacman.png", false);
@@ -181,15 +177,6 @@ void Pacman::LoadContent()
 	_pacman->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
 
 	// Load Munchies - now loaded in LoadLevel
-	//Texture2D* munchieTex = new Texture2D();
-	//munchieTex->Load("Textures/Munchie.tga", true);
-	//for (int i = 0; i < MUNCHIECOUNT; i++)
-	//{
-	//	_munchies[i]->texture = munchieTex;
-	//	_munchies[i]->sourceRect = new Rect(0.0f, 0.0f, 12, 12);
-	//	_munchies[i]->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
-	//}
-
 	//Load Cherry
 	_cherry->texture = new Texture2D;
 	_cherry->texture->Load("Textures/Cherry.png", false);
@@ -213,8 +200,6 @@ void Pacman::LoadContent()
 	_ghosts[1]->direction = 1;
 	//_ghosts[1]->target = _pacman->position;
 	_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
-
-	BuildLevel();
 
 	// Set string position
 	_stringPosition = new Vector2(10.0f, 25.0f);
@@ -240,6 +225,10 @@ void Pacman::LoadContent()
 	_winMenu->_menuBackground = _menuBg;
 	_winMenu->_menuRectangle = _menuRect;
 	_winMenu->_menuStringPosition = _menuStringPos;
+
+	_scoreboard->_menuBackground = _menuBg;
+	_scoreboard->_menuRectangle = _menuRect;
+	_scoreboard->_menuStringPosition = new Vector2(Graphics::GetViewportWidth() / 2.0f, Graphics::GetViewportHeight() / 14.0f);
 
 	_pop->Load("Sounds/pop.wav");
 	_death->Load("Sounds/death.wav");
@@ -278,6 +267,19 @@ void Pacman::LoadLevel()
 	delete sline;
 
 	stream.close();
+
+	munchieCount = 0;
+
+	for (int y = 0; y < lines->size(); ++y)
+	{
+		for (int x = 0; x < lines->at(0).size(); ++x)
+		{
+			if (lines->at(y)[x] == 'o')
+			{
+				munchieCount++;
+			}
+		}
+	}
 }
 
 void Pacman::BuildLevel()
@@ -320,7 +322,53 @@ void Pacman::BuildLevel()
 			}
 		}
 	}
-	delete lines;
+}
+
+void Pacman::RestartLevel()
+{
+	//reset pacman pos, boosts, lives
+	_pacman->dead = false;
+	_pacman->direction = 0;
+	_pacman->availableBoosts = 3;
+	_pacman->boostTime = 3000;
+	_pacman->position->X = 350.0f;
+	_pacman->position->Y = 350.0f;
+
+	//reset munchies
+	//delete values in old array
+	for (int i = 0; i < MUNCHIECOUNT; i++)
+	{
+		if (_munchies[i] == NULL)
+		{
+			continue;
+		}
+		delete _munchies[i]->sourceRect;
+		delete _munchies[i]->position;
+		delete _munchies[i];
+	}
+	//create new array values
+	LoadLevel();
+	for (int i = 0; i < munchieCount; i++)
+	{
+		_munchies[i] = new Enemy();
+		_munchies[i]->currentFrameTime = 0;
+		_munchies[i]->frameCount = rand() % 1;
+		_munchies[i]->pointWorth = 100;
+	}
+	numMunchies = munchieCount;
+	//setup new values for generation
+	BuildLevel();
+	//reset score
+	score = 0;
+
+	//reset ghosts
+	for (int i = 0; i < GHOSTCOUNT; i++)
+	{
+		_ghosts[i]->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
+	}
+	_ghosts[1]->direction = 1;
+	//_ghosts[1]->target = _pacman->position;
+	_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 }
 
 void Pacman::Update(int elapsedTime)
@@ -338,10 +386,9 @@ void Pacman::Update(int elapsedTime)
 	}
 	else if (_gameState == Win || _gameState == Lose)
 	{
-		CheckHighScore();
-		CheckRestart(keyboardState, Input::Keys::R);
+		CheckHighScore(keyboardState, Input::Keys::RETURN);
 	}
-	else if (_gameState == HighScore)
+	else if (_gameState == HighScore && _scoreboard->keyDown != true)
 	{
 		CheckRestart(keyboardState, Input::Keys::R);
 	}
@@ -438,25 +485,28 @@ void Pacman::Draw(int elapsedTime)
 		SpriteBatch::DrawString(stream.str().c_str(), _stringPosition, Color::Green);
 		break;
 	case Pause:
-		stream << "PAUSED!";
+		stream << "PAUSED!\nPress P to unpause.";
 
 		SpriteBatch::Draw(_pauseMenu->_menuBackground, _pauseMenu->_menuRectangle, nullptr);
 		SpriteBatch::DrawString(stream.str().c_str(), _pauseMenu->_menuStringPosition, Color::Red);
 		break;
 	case Win:
-		stream << "YOU WIN!\nFinal score: " << score;
+		stream << "YOU WIN!\nFinal score: " << score << "\nPress RETURN to continue.";
 
 		SpriteBatch::Draw(_winMenu->_menuBackground, _winMenu->_menuRectangle, nullptr);
 		SpriteBatch::DrawString(stream.str().c_str(), _winMenu->_menuStringPosition, Color::Yellow);
 		break;
 	case Lose:
-		stream << "YOU LOSE...\nFinal score: " << score;
+		stream << "YOU LOSE...\nFinal score: " << score << "\nPress RETURN to continue.";
 
 		SpriteBatch::Draw(_winMenu->_menuBackground, _winMenu->_menuRectangle, nullptr);
 		SpriteBatch::DrawString(stream.str().c_str(), _winMenu->_menuStringPosition, Color::Yellow);
 		break;
 	case HighScore:
-		stream = displayScores(scores);
+		stream = DisplayScores(scores);
+
+		SpriteBatch::Draw(_scoreboard->_menuBackground, _scoreboard->_menuRectangle, nullptr);
+		SpriteBatch::DrawString(stream.str().c_str(), _scoreboard->_menuStringPosition, Color::White);
 		break;
 	}
 
@@ -615,23 +665,26 @@ void Pacman::CheckWin()
 	}
 }
 
-void Pacman::CheckHighScore()
+void Pacman::CheckHighScore(Input::KeyboardState* state, Input::Keys restartKey)
 {
-	loadScores(scores);
-	inputScore(scores);
-	//if score is higher than lowest on table do something
-	_gameState = HighScore;
+	if (state->IsKeyDown(restartKey))
+	{
+		LoadScores(scores);
+		_gameState = HighScore;
+	}
 }
 
 void Pacman::CheckRestart(Input::KeyboardState* state, Input::Keys restartKey)
 {
 	if (state->IsKeyDown(restartKey)) {
+		_scoreboard->keyDown = false;
+		RestartLevel();
 		_gameState = MainMenu;
 	}
 }
 
 //scoreboard methods
-void Pacman::loadScores(vector<ScoreEntry>& scores)
+void Pacman::LoadScores(vector<ScoreEntry>& scores)
 {
 	ifstream inFile;
 	inFile.open("scores.txt");
@@ -666,7 +719,7 @@ void Pacman::loadScores(vector<ScoreEntry>& scores)
 	inFile.close();
 }
 
-void Pacman::saveScores(vector<ScoreEntry>& scores)
+void Pacman::SaveScores(vector<ScoreEntry>& scores)
 {
 	ofstream outFile;
 	outFile.open("scores.txt", ios::trunc);
@@ -681,7 +734,7 @@ void Pacman::saveScores(vector<ScoreEntry>& scores)
 	outFile.close();
 }
 
-stringstream Pacman::inputScore(vector<ScoreEntry>& scores) //1.
+stringstream Pacman::InputName(vector<ScoreEntry>& scores)
 {
 	ScoreEntry newEntry;
 	newEntry.score = score;
@@ -696,8 +749,8 @@ stringstream Pacman::inputScore(vector<ScoreEntry>& scores) //1.
 		getline(cin, newEntry.name);
 		newEntry.order = 0;
 
-		sortScores(scores, newEntry);
-		saveScores(scores);
+		SortScores(scores, newEntry);
+		SaveScores(scores);
 	}
 	else
 	{
@@ -706,7 +759,7 @@ stringstream Pacman::inputScore(vector<ScoreEntry>& scores) //1.
 	return output;
 }
 
-void Pacman::sortScores(vector<ScoreEntry>& scores, ScoreEntry& newEntry)
+void Pacman::SortScores(vector<ScoreEntry>& scores, ScoreEntry& newEntry)
 {
 	int size = scores.size();
 	bool moveUp = false;
@@ -744,14 +797,14 @@ void Pacman::sortScores(vector<ScoreEntry>& scores, ScoreEntry& newEntry)
 	}
 }
 
-stringstream Pacman::displayScores(vector<ScoreEntry>& scores) //2.
+stringstream Pacman::DisplayScores(vector<ScoreEntry>& scores) //2.
 {
 	std::stringstream stream;
 	stream << "SCOREBOARD" << endl << endl;
 	if (scores.size() == 0)
 	{
-		stream << "There are no scores to display. Press enter to R to the menu." << endl;
-		return;
+		stream << "There are no scores to display. Press R to return to the menu." << endl;
+		return stream;
 	}
 
 	int size = scores.size();
