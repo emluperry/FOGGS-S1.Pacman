@@ -123,7 +123,7 @@ private:
 	void CheckWallCollision(int elapsedTime);
 
 	//scoring
-	stringstream InputName(vector<ScoreEntry>&);
+	void InputName(vector<ScoreEntry>&);
 	stringstream DisplayScores(vector<ScoreEntry>&);
 	void LoadScores(vector<ScoreEntry>&);
 	void SortScores(vector<ScoreEntry>&, ScoreEntry&);

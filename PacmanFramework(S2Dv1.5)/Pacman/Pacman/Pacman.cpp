@@ -228,7 +228,7 @@ void Pacman::LoadContent()
 
 	_scoreboard->_menuBackground = _menuBg;
 	_scoreboard->_menuRectangle = _menuRect;
-	_scoreboard->_menuStringPosition = new Vector2(Graphics::GetViewportWidth() / 2.0f, Graphics::GetViewportHeight() / 14.0f);
+	_scoreboard->_menuStringPosition = new Vector2(Graphics::GetViewportWidth() / 12.0f, Graphics::GetViewportHeight() / 14.0f);
 
 	_pop->Load("Sounds/pop.wav");
 	_death->Load("Sounds/death.wav");
@@ -388,8 +388,13 @@ void Pacman::Update(int elapsedTime)
 	{
 		CheckHighScore(keyboardState, Input::Keys::RETURN);
 	}
-	else if (_gameState == HighScore && _scoreboard->keyDown != true)
+	else if (_gameState == HighScore)
 	{
+		if ((scores.size() < 10 || scores[scores.size() - 1].score < score) && _scoreboard->keyDown != true)
+		{
+			_scoreboard->keyDown = true;
+			InputName(scores);
+		}
 		CheckRestart(keyboardState, Input::Keys::R);
 	}
 	else
@@ -686,6 +691,7 @@ void Pacman::CheckRestart(Input::KeyboardState* state, Input::Keys restartKey)
 //scoreboard methods
 void Pacman::LoadScores(vector<ScoreEntry>& scores)
 {
+	scores.clear();
 	ifstream inFile;
 	inFile.open("scores.txt");
 
@@ -734,29 +740,20 @@ void Pacman::SaveScores(vector<ScoreEntry>& scores)
 	outFile.close();
 }
 
-stringstream Pacman::InputName(vector<ScoreEntry>& scores)
+void Pacman::InputName(vector<ScoreEntry>& scores)
 {
+	cin.clear();
+	cin.ignore();
 	ScoreEntry newEntry;
 	newEntry.score = score;
 
-	stringstream output;
-	output << "SCOREBOARD" << endl << endl;
-	output << "Your score was " << score << endl;
+	cout << "A valid score!" << endl << "Please enter your name." << endl;
+	getline(cin, newEntry.name);
+	newEntry.order = 0;
 
-	if (scores.size() < 10 || scores[scores.size() - 1].score < newEntry.score)
-	{
-		output << "A valid score!" << endl << "Please enter your name." << endl;
-		getline(cin, newEntry.name);
-		newEntry.order = 0;
-
-		SortScores(scores, newEntry);
-		SaveScores(scores);
-	}
-	else
-	{
-		output << "Sorry, your score wasn't high enough for the leaderboard." << endl;
-	}
-	return output;
+	SortScores(scores, newEntry);
+	SaveScores(scores);
+	return;
 }
 
 void Pacman::SortScores(vector<ScoreEntry>& scores, ScoreEntry& newEntry)
