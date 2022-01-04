@@ -742,15 +742,25 @@ void Pacman::SaveScores(vector<ScoreEntry>& scores)
 
 void Pacman::InputName(vector<ScoreEntry>& scores)
 {
-	cin.clear();
 	ScoreEntry newEntry;
 	newEntry.score = score;
 
 	cout << "A valid score!" << endl << "Please enter your name." << endl;
-	do
+	bool valid = false;
+	while (!valid)
 	{
 		getline(cin, newEntry.name);
-	} while (newEntry.name.length() > 0);
+		if (newEntry.name.length() > 0)
+		{
+			valid = true;
+		}
+		else
+		{
+			cout << endl << "Invalid input! Try again." << endl;
+		}
+		cin.clear();
+		cin.ignore();
+	}
 	newEntry.order = 0;
 
 	SortScores(scores, newEntry);
