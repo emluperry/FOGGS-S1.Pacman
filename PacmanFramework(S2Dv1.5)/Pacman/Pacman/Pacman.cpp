@@ -200,6 +200,7 @@ void Pacman::LoadContent()
 	_ghosts[1]->direction = 1;
 	//_ghosts[1]->target = _pacman->position;
 	_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
+	_ghosts[3]->position = new Vector2(550.0f, 340.0f);
 
 	// Set string position
 	_stringPosition = new Vector2(10.0f, 25.0f);
@@ -522,13 +523,6 @@ void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::
 {
 	float pacmanSpeed = _pacman->cPacmanSpeed * elapsedTime * _pacman->speedMultiplier;
 
-	//mouse input - REPOSITIONS CHERRY
-	if (mouseState->LeftButton == Input::ButtonState::PRESSED)
-	{
-		_cherry->position->X = mouseState->X;
-		_cherry->position->Y = mouseState->Y;
-	}
-
 	//mouse input - SPEED BOOST OPTIONAL IMPLEMENTATION: LIMITED TIME/USE
 	if (mouseState->RightButton == Input::ButtonState::PRESSED && _pacman->boostTime >= 3000 && _pacman->availableBoosts > 0)
 	{
@@ -572,64 +566,6 @@ void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::
 	//Toggles wall collision and wall wrapping.
 	if (keyboardState->IsKeyDown(Input::Keys::TAB))
 				_hasCollision = !_hasCollision;
-}
-
-void PacmanDash()
-{
-	// Check if SHIFT key pressed
-    //if (keyboardState->IsKeyDown(Input::Keys::LEFTSHIFT))
-    //{
-	    //apply multiplier
-	    //_pacman->speedMultiplier = 2.0f;
-    //}
-    //else
-    //{
-    	//_pacman->speedMultiplier = 1.0f;
-    //}
-}
-
-void PacmanFollowMouse()
-{
-	//mouse input - PACMAN MOVEMENT OPTIONAL IMPLEMENTATION: MOVEMENT WITH MOUSE
-	//NOTE: if keeping this code, can put directional movement into functions for code reusability?
-	//NOTE 2: pacman can move diagonally using this method, if the mouse stays still & clicked for long enough. Solution?
-	//if (mouseState->LeftButton == Input::ButtonState::PRESSED)
-	//{
-	//	float xDist = _pacman->position->X - mouseState->X;
-	//	float yDist = _pacman->position->Y - mouseState->Y;
-
-	//	float xSquare = xDist * xDist;
-	//	float ySquare = yDist * yDist;
-
-	//	if (xSquare > ySquare)
-	//	{
-	//		//move in x direction
-	//		if (xDist >= 0)
-	//		{
-	//			_pacman->position->X -= pacmanSpeed; //Moves Pacman across X axis
-	//			_pacman->direction = 2;
-	//		}
-	//		else
-	//		{
-	//			_pacman->position->X += pacmanSpeed; //Moves Pacman across X axis
-	//			_pacman->direction = 0;
-	//		}
-	//	}
-	//	else
-	//	{
-	//		// move in y direction
-	//		if (yDist >= 0)
-	//		{
-	//			_pacman->position->Y -= pacmanSpeed; //Moves Pacman across X axis
-	//			_pacman->direction = 3;
-	//		}
-	//		else
-	//		{
-	//			_pacman->position->Y += pacmanSpeed; //Moves Pacman across X axis
-	//			_pacman->direction = 1;
-	//		}
-	//	}
-	//}
 }
 
 void Pacman::CheckPaused(Input::KeyboardState* state, Input::Keys pauseKey)
@@ -866,11 +802,6 @@ void Pacman::UpdateMunchie(int elapsedTime, int index)
 	_cherry->sourceRect->X = _cherry->sourceRect->Width * _munchie->frameCount; // change cherry sprite based on munchie sprite/time
 }
 
-//horizontal patrol
-//vertical patrol
-//border patrol
-//random patrol
-
 void Pacman::UpdateGhost(MovingEnemy* ghost, int elapsedTime)
 {
 	ghost->currentFrameTime += elapsedTime;
@@ -974,7 +905,7 @@ void Pacman::UpdatePink(MovingEnemy* ghost, int elapsedTime)
 
 void Pacman::UpdateOrange(MovingEnemy* ghost, int elapsedTime)
 {
-	MoveTowardsTarget(ghost, elapsedTime);
+	PathfindTarget(ghost, elapsedTime);
 
 	if (ghost->position->X < ghost->target->X + 1 &&
 		ghost->position->X + ghost->sourceRect->Width > ghost->target->X &&
@@ -1005,12 +936,12 @@ void Pacman::CheckProximity(MovingEnemy* ghost, int elapsedTime)
 
 void Pacman::ChasePacman(MovingEnemy* ghost, int elapsedTime)
 {
-	MoveTowardsTarget(ghost, elapsedTime);
+	PathfindTarget(ghost, elapsedTime);
 	ghost->target = _pacman->position;
 }
 
 void Pacman::MoveTowardsTarget(MovingEnemy* ghost, int elapsedTime)
-{
+{ //ignores walls
 	float xDist = ghost->position->X - ghost->target->X;
 	float yDist = ghost->position->Y - ghost->target->Y;
 
@@ -1047,6 +978,97 @@ void Pacman::MoveTowardsTarget(MovingEnemy* ghost, int elapsedTime)
 	}
 }
 
+void Pacman::PathfindTarget(MovingEnemy* ghost, int elapsedTime)
+{ //avoids walls
+	//find options for possible moves
+	vector<int> options;
+	if (!CheckGhostWallCollision(ghost, 2, elapsedTime)) //down
+	{
+		options.push_back(2);
+	}
+	if (!CheckGhostWallCollision(ghost, 0, elapsedTime)) //down
+	{
+		options.push_back(0);
+	}
+	if (!CheckGhostWallCollision(ghost, 3, elapsedTime)) //down
+	{
+		options.push_back(3);
+	}
+	if (!CheckGhostWallCollision(ghost, 1, elapsedTime)) //down
+	{
+		options.push_back(1);
+	}
+
+	int choice = 0;
+	if (options.size() > 1)
+	{
+		//calculate option weights
+		vector<int> weights;
+		for (int i = 0; i < options.size(); i++)
+		{
+			int xOffset = 0;
+			int yOffset = 0;
+			if (options[i] == 0)
+			{
+				xOffset -= ghost->speed * elapsedTime;
+			}
+			else if (options[i] == 2)
+			{
+				xOffset += ghost->speed * elapsedTime;
+			}
+			else if (options[i] == 1)
+			{
+				yOffset -= ghost->speed * elapsedTime;
+			}
+			else if (options[i] == 3)
+			{
+				yOffset += ghost->speed * elapsedTime;
+			}
+
+			float xDist = ghost->position->X + xOffset - ghost->target->X;
+			float yDist = ghost->position->Y + yOffset - ghost->target->Y;
+
+			float xSquare = xDist * xDist;
+			float ySquare = yDist * yDist;
+			weights.push_back(xSquare + ySquare);
+		}
+
+		//find smallest option
+		int tempI = 0;
+		for (int i = 1; i < weights.size(); i++)
+		{
+			if (weights[i] < weights[tempI])
+			{
+				tempI = i;
+			}
+		}
+		choice = tempI;
+	}
+
+	//move in x direction
+	if (options[choice] == 2)
+	{
+		ghost->position->X -= ghost->speed * elapsedTime;
+		ghost->direction = 2;
+	}
+	else if (options[choice] == 0)
+	{
+		ghost->position->X += ghost->speed * elapsedTime;
+		ghost->direction = 0;
+	}
+	// move in y direction
+	else if (options[choice] == 3)
+	{
+		ghost->position->Y -= ghost->speed * elapsedTime;
+		ghost->direction = 3;
+	}
+	else if (options[choice] == 1)
+	{
+		ghost->position->Y += ghost->speed * elapsedTime;
+		ghost->direction = 1;
+	}
+}
+
 void Pacman::CheckCollisions(int elapsedTime)
 {
 	CheckGhostCollisions();
@@ -1074,7 +1096,7 @@ void Pacman::CheckCollisions(int elapsedTime)
 		score += _cherry->pointWorth;
 		_cherry->isEaten = true;
 	}
-	CheckWallCollision(elapsedTime);
+	CheckPacWallCollision(elapsedTime);
 }
 
 void Pacman::CheckViewportCollision()
@@ -1172,7 +1194,7 @@ bool Pacman::CheckObjectCollision(Enemy* object)
 	}
 }
 
-void Pacman::CheckWallCollision(int elapsedTime)
+void Pacman::CheckPacWallCollision(int elapsedTime)
 {
 	int maxWalls = _walls->size();
 	int width = _walls->size();
@@ -1213,4 +1235,48 @@ void Pacman::CheckWallCollision(int elapsedTime)
 			}
 		}
 	}
+}
+
+bool Pacman::CheckGhostWallCollision(MovingEnemy* enemy, int direction, int elapsedTime)
+{
+	int xOffset = 0;
+	int yOffset = 0;
+	if (direction == 0)
+	{
+		xOffset -= enemy->speed * elapsedTime;
+	}
+	else if (direction == 2)
+	{
+		xOffset += enemy->speed * elapsedTime;
+	}
+	else if (direction == 1)
+	{
+		yOffset -= enemy->speed * elapsedTime;
+	}
+	else if (direction == 3)
+	{
+		yOffset += enemy->speed * elapsedTime;
+	}
+
+	int maxWalls = _walls->size();
+	int width = _walls->size();
+	int height = _walls->at(0).size();
+	for (int y = 0; y < height; ++y)
+	{
+		for (int x = 0; x < width; ++x)
+		{
+			if ((*_walls)[x][y] == NULL)
+			{
+				continue;
+			}
+			if ((*_walls)[x][y]->position->X < enemy->position->X + enemy->sourceRect->Width + xOffset &&
+				(*_walls)[x][y]->position->X + (*_walls)[x][y]->sourceRect->Width > enemy->position->X + xOffset &&
+				(*_walls)[x][y]->position->Y < enemy->position->Y + enemy->sourceRect->Height + yOffset &&
+				(*_walls)[x][y]->position->Y + (*_walls)[x][y]->sourceRect->Height > enemy->position->Y + yOffset)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
 }

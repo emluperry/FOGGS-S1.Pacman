@@ -120,7 +120,8 @@ private:
 	void CheckViewportCollision();
 	void CheckGhostCollisions();
 	bool CheckObjectCollision(Enemy* object);
-	void CheckWallCollision(int elapsedTime);
+	void CheckPacWallCollision(int elapsedTime);
+	bool CheckGhostWallCollision(MovingEnemy* enemy, int direction, int elapsedTime);
 
 	//scoring
 	void InputName(vector<ScoreEntry>&);
@@ -141,6 +142,7 @@ private:
 	void CheckProximity(MovingEnemy*, int elapsedTime);
 	void ChasePacman(MovingEnemy*, int elapsedTime);
 	void MoveTowardsTarget(MovingEnemy*, int elapsedTime);
+	void PathfindTarget(MovingEnemy*, int elapsedTime);
 
 	Player* _pacman;
 	Enemy** _munchies;
