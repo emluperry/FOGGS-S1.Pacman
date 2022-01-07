@@ -6,6 +6,7 @@
 #include <time.h>
 #include <fstream>
 #include <string>
+#include <algorithm>
 
 Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 {
@@ -173,7 +174,7 @@ void Pacman::LoadContent()
 	// Load Pacman
 	_pacman->texture = new Texture2D();
 	_pacman->texture->Load("Textures/Pacman.png", false);
-	_pacman->position = new Vector2(350.0f, 350.0f);
+	_pacman->position = new Vector2(350.0f, 335.0f);
 	_pacman->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
 
 	// Load Munchies - now loaded in LoadLevel
@@ -194,12 +195,19 @@ void Pacman::LoadContent()
 	_ghosts[3]->texture->Load("Textures/GhostOrange.png", false);
 	for (int i = 0; i < GHOSTCOUNT; i++)
 	{
-		_ghosts[i]->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 		_ghosts[i]->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
+		do
+		{
+			_ghosts[i]->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
+		} while (!CheckPosition(*_ghosts[i]->position, 4));
+		//_ghosts[i]->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 	}
 	_ghosts[1]->direction = 1;
-	//_ghosts[1]->target = _pacman->position;
-	_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
+	_ghosts[1]->position = new Vector2(16.0f, 100.0f);
+	do
+	{
+		_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
+	} while (!CheckPosition(*_ghosts[3]->target, 4));
 	_ghosts[3]->position = new Vector2(550.0f, 340.0f);
 
 	// Set string position
@@ -304,9 +312,9 @@ void Pacman::BuildLevel()
 			if (tileType == 'x')
 			{
 				Wall* wall = new Wall();
-				wall->position = new Vector2(-96 + x * 32, y * 32);
+				wall->position = new Vector2(-112 + x * 32, -16 + y * 32);
 				wall->texture = wallTex;
-				wall->sourceRect = new Rect(0.0f, 0.0f, 20, 20);
+				wall->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
 				(*_walls)[x][y] = wall;
 			}
 			else
@@ -318,7 +326,7 @@ void Pacman::BuildLevel()
 			{
 				_munchies[index]->texture = munchieTex;
 				_munchies[index]->sourceRect = new Rect(0.0f, 0.0f, 12, 12);
-				_munchies[index]->position = new Vector2(-96 + x * 32, y * 32);
+				_munchies[index]->position = new Vector2(-112 + x * 32, -16 + y * 32);
 				index++;
 			}
 		}
@@ -368,7 +376,7 @@ void Pacman::RestartLevel()
 		_ghosts[i]->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 	}
 	_ghosts[1]->direction = 1;
-	//_ghosts[1]->target = _pacman->position;
+	_ghosts[1]->position = new Vector2(16.0f, 100.0f);
 	_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 }
 
@@ -420,7 +428,7 @@ void Pacman::Update(int elapsedTime)
 			UpdateGreen(_ghosts[0], elapsedTime);
 			UpdateRed(_ghosts[1], elapsedTime);
 			UpdatePink(_ghosts[2], elapsedTime);
-			UpdateOrange(_ghosts[3], elapsedTime);
+			//UpdateOrange(_ghosts[3], elapsedTime);
 			for (int i = 0; i < GHOSTCOUNT; i++)
 			{
 				UpdateGhost(_ghosts[i], elapsedTime);
@@ -841,23 +849,24 @@ void Pacman::UpdateGreen(MovingEnemy* ghost, int elapsedTime)
 
 void Pacman::UpdateRed(MovingEnemy* ghost, int elapsedTime)
 {
-	//vertical
-	if (ghost->direction == 1)
+	ghost->target = _pacman->position;
+	PathfindTarget(ghost);
+
+	if (ghost->direction == 0)
+	{
+		ghost->position->X += ghost->speed * elapsedTime;
+	}
+	else if (ghost->direction == 1)
 	{
 		ghost->position->Y += ghost->speed * elapsedTime;
+	}
+	else if (ghost->direction == 2)
+	{
+		ghost->position->X -= ghost->speed * elapsedTime;
 	}
 	else if (ghost->direction == 3)
 	{
 		ghost->position->Y -= ghost->speed * elapsedTime;
-	}
-
-	if (ghost->position->Y + ghost->sourceRect->Height >= Graphics::GetViewportHeight())
-	{
-		ghost->direction = 3;
-	}
-	else if (ghost->position->Y <= 0)
-	{
-		ghost->direction = 1;
 	}
 }
 
@@ -905,8 +914,24 @@ void Pacman::UpdatePink(MovingEnemy* ghost, int elapsedTime)
 
 void Pacman::UpdateOrange(MovingEnemy* ghost, int elapsedTime)
 {
-	MoveTowardsTarget(ghost, elapsedTime);
-	//PathfindTarget(ghost, elapsedTime);
+	PathfindTarget(ghost);
+
+	if (ghost->direction == 0)
+	{
+		ghost->position->X += ghost->speed * elapsedTime;
+	}
+	else if (ghost->direction == 1)
+	{
+		ghost->position->Y += ghost->speed * elapsedTime;
+	}
+	else if (ghost->direction == 2)
+	{
+		ghost->position->X -= ghost->speed * elapsedTime;
+	}
+	else if (ghost->direction == 3)
+	{
+		ghost->position->Y -= ghost->speed * elapsedTime;
+	}
 
 	if (ghost->position->X < ghost->target->X + 1 &&
 		ghost->position->X + ghost->sourceRect->Width > ghost->target->X &&
@@ -914,50 +939,6 @@ void Pacman::UpdateOrange(MovingEnemy* ghost, int elapsedTime)
 		ghost->position->Y + ghost->sourceRect->Height > ghost->target->Y)
 	{
 		ghost->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
-	}
-}
-
-void Pacman::ChasePacman(MovingEnemy* ghost, int elapsedTime)
-{
-	PathfindTarget(ghost, elapsedTime);
-	ghost->target = _pacman->position;
-}
-
-void Pacman::MoveTowardsTarget(MovingEnemy* ghost, int elapsedTime)
-{ //ignores walls
-	float xDist = ghost->position->X - ghost->target->X;
-	float yDist = ghost->position->Y - ghost->target->Y;
-
-	float xSquare = xDist * xDist;
-	float ySquare = yDist * yDist;
-
-	if (xSquare > ySquare)
-	{
-		//move in x direction
-		if (xDist >= 0)
-		{
-			ghost->position->X -= ghost->speed * elapsedTime;
-			ghost->direction = 2;
-		}
-		else
-		{
-			ghost->position->X += ghost->speed * elapsedTime;
-			ghost->direction = 0;
-		}
-	}
-	else
-	{
-		// move in y direction
-		if (yDist >= 0)
-		{
-			ghost->position->Y -= ghost->speed * elapsedTime;
-			ghost->direction = 3;
-		}
-		else
-		{
-			ghost->position->Y += ghost->speed * elapsedTime;
-			ghost->direction = 1;
-		}
 	}
 }
 
@@ -1057,10 +1038,10 @@ void Pacman::CheckGhostCollisions()
 {
 	for (int i = 0; i < GHOSTCOUNT; i++)
 	{
-		if (_ghosts[i]->position->X < _pacman->position->X + _pacman->sourceRect->Width &&
-			_ghosts[i]->position->X + _ghosts[i]->sourceRect->Width > _pacman->position->X &&
-			_ghosts[i]->position->Y < _pacman->position->Y + _pacman->sourceRect->Height &&
-			_ghosts[i]->position->Y + _ghosts[i]->sourceRect->Height > _pacman->position->Y)
+		if (_ghosts[i]->position->X + 8 < _pacman->position->X + _pacman->sourceRect->Width &&
+			_ghosts[i]->position->X + _ghosts[i]->sourceRect->Width - 8 > _pacman->position->X &&
+			_ghosts[i]->position->Y + 8 < _pacman->position->Y + _pacman->sourceRect->Height &&
+			_ghosts[i]->position->Y + _ghosts[i]->sourceRect->Height - 8 > _pacman->position->Y)
 		{
 			_pacman->dead = true;
 			i = GHOSTCOUNT;
@@ -1099,10 +1080,10 @@ void Pacman::CheckPacWallCollision(int elapsedTime)
 			{
 				continue;
 			}
-			if ((*_walls)[x][y]->position->X < _pacman->position->X + _pacman->sourceRect->Width &&
-				(*_walls)[x][y]->position->X + (*_walls)[x][y]->sourceRect->Width > _pacman->position->X &&
-				(*_walls)[x][y]->position->Y < _pacman->position->Y + _pacman->sourceRect->Height &&
-				(*_walls)[x][y]->position->Y + (*_walls)[x][y]->sourceRect->Height > _pacman->position->Y)
+			if ((*_walls)[x][y]->position->X + 4 < _pacman->position->X + _pacman->sourceRect->Width &&
+				(*_walls)[x][y]->position->X + (*_walls)[x][y]->sourceRect->Width - 4 > _pacman->position->X &&
+				(*_walls)[x][y]->position->Y + 4 < _pacman->position->Y + _pacman->sourceRect->Height &&
+				(*_walls)[x][y]->position->Y + (*_walls)[x][y]->sourceRect->Height - 4 > _pacman->position->Y)
 			{
 				if (_collision->GetState() != SoundEffectState::PLAYING)
 				{
@@ -1131,13 +1112,150 @@ void Pacman::CheckPacWallCollision(int elapsedTime)
 
 //PATHFINDING
 
-void Pacman::PathfindTarget(MovingEnemy* ghost, int elapsedTime)
+void Pacman::PathfindTarget(MovingEnemy* ghost)
 { //avoids walls
-	if (ghost->path.size() == 0 || ghost->steps >= 4)
+	vector<int> options = GetOptions(ghost);
+	cout << "List size " << options.size() << endl;
+	if (options.size() >= 1)
 	{
-		CalculatePath(ghost, elapsedTime);
+		int index = GetBestMove(ghost, options);
+		cout << index << " = direction " << options[index] << endl << endl;
+		ghost->direction = options[index];
 	}
-	//go that path
-	ghost->position = ghost->path[0];
-	ghost->path.erase(ghost->path.begin());
+}
+
+vector<int> Pacman::GetOptions(MovingEnemy* ghost)
+{
+	int oppDirection = 0;
+	if (ghost->direction == 0)
+	{
+		oppDirection = 2;
+	}
+	else if (ghost->direction == 1)
+	{
+		oppDirection = 3;
+	}
+	else if (ghost->direction == 2)
+	{
+		oppDirection = 0;
+	}
+	else if (ghost->direction == 3)
+	{
+		oppDirection = 1;
+	}
+
+	vector<int> options;
+	if (CheckPosition(*ghost->position, 0) && oppDirection != 0)
+	{
+		options.push_back(0);
+		cout << "0, ";
+	}
+	if (CheckPosition(*ghost->position, 1) && oppDirection != 1)
+	{
+		options.push_back(1);
+		cout << "1, ";
+	}
+	if (CheckPosition(*ghost->position, 2) && oppDirection != 2)
+	{
+		options.push_back(2);
+		cout << "2, ";
+	}
+	if (CheckPosition(*ghost->position, 3) && oppDirection != 3)
+	{
+		options.push_back(3);
+		cout << "3, ";
+	}
+	cout << endl;
+	return options;
+}
+
+bool Pacman::CheckPosition(Vector2 initialPos, int direction)
+{
+	int xOffset = 0;
+	int yOffset = 0;
+	if (direction == 0) //right
+	{
+		xOffset += 8;
+	}
+	else if (direction == 2) //left
+	{
+		xOffset -= 8;
+	}
+	else if (direction == 1) //down
+	{
+		yOffset += 8;
+	}
+	else if (direction == 3) //up
+	{
+		yOffset -= 8;
+	}
+	Vector2* position = new Vector2(initialPos.X + xOffset, initialPos.Y + yOffset);
+
+	int maxWalls = _walls->size();
+	int width = _walls->size();
+	int height = _walls->at(0).size();
+	for (int y = 0; y < height; ++y)
+	{
+		for (int x = 0; x < width; ++x)
+		{
+			if ((*_walls)[x][y] == NULL)
+			{
+				continue;
+			}
+			if ((*_walls)[x][y]->position->X + 4 < position->X + _ghosts[0]->sourceRect->Width &&
+				(*_walls)[x][y]->position->X + (*_walls)[x][y]->sourceRect->Width - 4 > position->X &&
+				(*_walls)[x][y]->position->Y + 4 < position->Y + _ghosts[0]->sourceRect->Height &&
+				(*_walls)[x][y]->position->Y + (*_walls)[x][y]->sourceRect->Height - 4 > position->Y)
+			{
+				delete position;
+				return false;
+			}
+		}
+	}
+	delete position;
+	return true;
+}
+
+int Pacman::GetBestMove(MovingEnemy* ghost, vector<int> &options)
+{
+	int lowestDiff = 9999999;
+	int lowestChoice = 0;
+	for (int i = 0; i < options.size(); i++)
+	{
+		int xOffset = 0;
+		int yOffset = 0;
+		if (options[i] == 0) //right
+		{
+			xOffset += 8;
+		}
+		else if (options[i] == 2) //left
+		{
+			xOffset -= 8;
+		}
+		else if (options[i] == 1) //down
+		{
+			yOffset += 8;
+		}
+		else if (options[i] == 3) //up
+		{
+			yOffset -= 8;
+		}
+		Vector2* position = new Vector2(ghost->position->X + xOffset, ghost->position->Y + yOffset);
+
+		int xDiff = ghost->target->X - position->X;
+		xDiff *= xDiff;
+		int yDiff = ghost->target->Y - position->Y;
+		yDiff *= yDiff;
+		int diff = xDiff + yDiff;
+		cout << xDiff + yDiff << ", ";
+
+		if (xDiff + yDiff < lowestDiff)
+		{
+			lowestDiff = xDiff + yDiff;
+			lowestChoice = i;
+		}
+		delete position;
+	}
+	cout << endl;
+	return lowestChoice;
 }

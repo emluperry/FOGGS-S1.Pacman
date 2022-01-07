@@ -1,9 +1,13 @@
+Theo
+3000
 Emily
 2400
 Thomas
 2300
 Emily
 2100
+Emily
+2000
 Ash
 1700
 Matt
@@ -12,9 +16,5 @@ Thomas
 1400
 Lizzy
 1200
-Rose
-1000
 Jack
-900
-Tobias
-900
+1200

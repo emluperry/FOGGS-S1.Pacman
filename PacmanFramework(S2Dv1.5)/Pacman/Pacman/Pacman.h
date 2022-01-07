@@ -139,12 +139,11 @@ private:
 	void UpdatePink(MovingEnemy*, int elapsedTime);
 	void UpdateOrange(MovingEnemy*, int elapsedTime);
 	void UpdateGhost(MovingEnemy*, int elapsedTime);
-	void PathfindTarget(MovingEnemy*, int elapsedTime);
+	void PathfindTarget(MovingEnemy*);
 
-	void CalculatePath(MovingEnemy*, int elapsedTime);
-
-	void ChasePacman(MovingEnemy*, int elapsedTime);
-	void MoveTowardsTarget(MovingEnemy*, int elapsedTime);
+	vector<int> GetOptions(MovingEnemy*);
+	bool CheckPosition(Vector2, int direction);
+	int GetBestMove(MovingEnemy*, vector<int> &options);
 
 	Player* _pacman;
 	Enemy** _munchies;
