@@ -121,7 +121,6 @@ private:
 	void CheckGhostCollisions();
 	bool CheckObjectCollision(Enemy* object);
 	void CheckPacWallCollision(int elapsedTime);
-	bool CheckGhostWallCollision(MovingEnemy* enemy, int direction, int elapsedTime);
 
 	//scoring
 	void InputName(vector<ScoreEntry>&);
@@ -134,15 +133,18 @@ private:
 	void UpdatePacman(int elapsedTime);
 	void UpdateMunchie(int elapsedTime, int index);
 
+	//PathFinding
 	void UpdateGreen(MovingEnemy*, int elapsedTime);
 	void UpdateRed(MovingEnemy*, int elapsedTime);
 	void UpdatePink(MovingEnemy*, int elapsedTime);
 	void UpdateOrange(MovingEnemy*, int elapsedTime);
 	void UpdateGhost(MovingEnemy*, int elapsedTime);
-	void CheckProximity(MovingEnemy*, int elapsedTime);
+	void PathfindTarget(MovingEnemy*, int elapsedTime);
+
+	void CalculatePath(MovingEnemy*, int elapsedTime);
+
 	void ChasePacman(MovingEnemy*, int elapsedTime);
 	void MoveTowardsTarget(MovingEnemy*, int elapsedTime);
-	void PathfindTarget(MovingEnemy*, int elapsedTime);
 
 	Player* _pacman;
 	Enemy** _munchies;

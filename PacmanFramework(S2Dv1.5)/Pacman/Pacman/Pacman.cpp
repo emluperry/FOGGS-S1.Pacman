@@ -905,7 +905,8 @@ void Pacman::UpdatePink(MovingEnemy* ghost, int elapsedTime)
 
 void Pacman::UpdateOrange(MovingEnemy* ghost, int elapsedTime)
 {
-	PathfindTarget(ghost, elapsedTime);
+	MoveTowardsTarget(ghost, elapsedTime);
+	//PathfindTarget(ghost, elapsedTime);
 
 	if (ghost->position->X < ghost->target->X + 1 &&
 		ghost->position->X + ghost->sourceRect->Width > ghost->target->X &&
@@ -913,24 +914,6 @@ void Pacman::UpdateOrange(MovingEnemy* ghost, int elapsedTime)
 		ghost->position->Y + ghost->sourceRect->Height > ghost->target->Y)
 	{
 		ghost->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
-	}
-}
-
-void Pacman::CheckProximity(MovingEnemy* ghost, int elapsedTime)
-{
-	for (int i = 0; i < GHOSTCOUNT; i++)
-	{
-		if (_ghosts[i]->position->X < _pacman->position->X + _pacman->sourceRect->Width &&
-			_ghosts[i]->position->X + _ghosts[i]->sourceRect->Width > _pacman->position->X &&
-			_ghosts[i]->position->Y < _pacman->position->Y + _pacman->sourceRect->Height &&
-			_ghosts[i]->position->Y + _ghosts[i]->sourceRect->Height > _pacman->position->Y)
-		{
-			//mode = chase
-		}
-		else
-		{
-			//mode = patrol
-		}
 	}
 }
 
@@ -975,97 +958,6 @@ void Pacman::MoveTowardsTarget(MovingEnemy* ghost, int elapsedTime)
 			ghost->position->Y += ghost->speed * elapsedTime;
 			ghost->direction = 1;
 		}
-	}
-}
-
-void Pacman::PathfindTarget(MovingEnemy* ghost, int elapsedTime)
-{ //avoids walls
-	//find options for possible moves
-	vector<int> options;
-	if (!CheckGhostWallCollision(ghost, 2, elapsedTime)) //down
-	{
-		options.push_back(2);
-	}
-	if (!CheckGhostWallCollision(ghost, 0, elapsedTime)) //down
-	{
-		options.push_back(0);
-	}
-	if (!CheckGhostWallCollision(ghost, 3, elapsedTime)) //down
-	{
-		options.push_back(3);
-	}
-	if (!CheckGhostWallCollision(ghost, 1, elapsedTime)) //down
-	{
-		options.push_back(1);
-	}
-
-	int choice = 0;
-	if (options.size() > 1)
-	{
-		//calculate option weights
-		vector<int> weights;
-		for (int i = 0; i < options.size(); i++)
-		{
-			int xOffset = 0;
-			int yOffset = 0;
-			if (options[i] == 0)
-			{
-				xOffset -= ghost->speed * elapsedTime;
-			}
-			else if (options[i] == 2)
-			{
-				xOffset += ghost->speed * elapsedTime;
-			}
-			else if (options[i] == 1)
-			{
-				yOffset -= ghost->speed * elapsedTime;
-			}
-			else if (options[i] == 3)
-			{
-				yOffset += ghost->speed * elapsedTime;
-			}
-
-			float xDist = ghost->position->X + xOffset - ghost->target->X;
-			float yDist = ghost->position->Y + yOffset - ghost->target->Y;
-
-			float xSquare = xDist * xDist;
-			float ySquare = yDist * yDist;
-			weights.push_back(xSquare + ySquare);
-		}
-
-		//find smallest option
-		int tempI = 0;
-		for (int i = 1; i < weights.size(); i++)
-		{
-			if (weights[i] < weights[tempI])
-			{
-				tempI = i;
-			}
-		}
-		choice = tempI;
-	}
-
-	//move in x direction
-	if (options[choice] == 2)
-	{
-		ghost->position->X -= ghost->speed * elapsedTime;
-		ghost->direction = 2;
-	}
-	else if (options[choice] == 0)
-	{
-		ghost->position->X += ghost->speed * elapsedTime;
-		ghost->direction = 0;
-	}
-	// move in y direction
-	else if (options[choice] == 3)
-	{
-		ghost->position->Y -= ghost->speed * elapsedTime;
-		ghost->direction = 3;
-	}
-	else if (options[choice] == 1)
-	{
-		ghost->position->Y += ghost->speed * elapsedTime;
-		ghost->direction = 1;
 	}
 }
 
@@ -1237,46 +1129,15 @@ void Pacman::CheckPacWallCollision(int elapsedTime)
 	}
 }
 
-bool Pacman::CheckGhostWallCollision(MovingEnemy* enemy, int direction, int elapsedTime)
-{
-	int xOffset = 0;
-	int yOffset = 0;
-	if (direction == 0)
-	{
-		xOffset -= enemy->speed * elapsedTime;
-	}
-	else if (direction == 2)
-	{
-		xOffset += enemy->speed * elapsedTime;
-	}
-	else if (direction == 1)
-	{
-		yOffset -= enemy->speed * elapsedTime;
-	}
-	else if (direction == 3)
-	{
-		yOffset += enemy->speed * elapsedTime;
-	}
+//PATHFINDING
 
-	int maxWalls = _walls->size();
-	int width = _walls->size();
-	int height = _walls->at(0).size();
-	for (int y = 0; y < height; ++y)
+void Pacman::PathfindTarget(MovingEnemy* ghost, int elapsedTime)
+{ //avoids walls
+	if (ghost->path.size() == 0 || ghost->steps >= 4)
 	{
-		for (int x = 0; x < width; ++x)
-		{
-			if ((*_walls)[x][y] == NULL)
-			{
-				continue;
-			}
-			if ((*_walls)[x][y]->position->X < enemy->position->X + enemy->sourceRect->Width + xOffset &&
-				(*_walls)[x][y]->position->X + (*_walls)[x][y]->sourceRect->Width > enemy->position->X + xOffset &&
-				(*_walls)[x][y]->position->Y < enemy->position->Y + enemy->sourceRect->Height + yOffset &&
-				(*_walls)[x][y]->position->Y + (*_walls)[x][y]->sourceRect->Height > enemy->position->Y + yOffset)
-			{
-				return true;
-			}
-		}
+		CalculatePath(ghost, elapsedTime);
 	}
-	return false;
+	//go that path
+	ghost->position = ghost->path[0];
+	ghost->path.erase(ghost->path.begin());
 }
