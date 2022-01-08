@@ -137,6 +137,7 @@ Pacman::~Pacman()
 		delete _ghosts[i]->sourceRect;
 		delete _ghosts[i]->position;
 		delete _ghosts[i]->target;
+		delete _ghosts[i]->scatterTile;
 		delete _ghosts[i];
 	}
 
@@ -196,19 +197,15 @@ void Pacman::LoadContent()
 	for (int i = 0; i < GHOSTCOUNT; i++)
 	{
 		_ghosts[i]->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
-		do
-		{
-			_ghosts[i]->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
-		} while (!CheckPosition(*_ghosts[i]->position, 4));
-		//_ghosts[i]->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 	}
-	_ghosts[1]->direction = 1;
+	_ghosts[0]->position = new Vector2(976.0f, 600.0f);
+	_ghosts[0]->scatterTile = new Vector2(976.0f, 600.0f);
 	_ghosts[1]->position = new Vector2(16.0f, 100.0f);
-	do
-	{
-		_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
-	} while (!CheckPosition(*_ghosts[3]->target, 4));
-	_ghosts[3]->position = new Vector2(550.0f, 340.0f);
+	_ghosts[1]->scatterTile = new Vector2(16.0f, 100.0f);
+	_ghosts[2]->position = new Vector2(16.0f, 600.0f);
+	_ghosts[2]->scatterTile = new Vector2(16.0f, 600.0f);
+	_ghosts[3]->position = new Vector2(976.0f, 100.0f);
+	_ghosts[3]->scatterTile = new Vector2(976.0f, 100.0f);
 
 	// Set string position
 	_stringPosition = new Vector2(10.0f, 25.0f);
@@ -326,7 +323,7 @@ void Pacman::BuildLevel()
 			{
 				_munchies[index]->texture = munchieTex;
 				_munchies[index]->sourceRect = new Rect(0.0f, 0.0f, 12, 12);
-				_munchies[index]->position = new Vector2(-112 + x * 32, -16 + y * 32);
+				_munchies[index]->position = new Vector2(-104 + x * 32, -8 + y * 32);
 				index++;
 			}
 		}
@@ -340,8 +337,7 @@ void Pacman::RestartLevel()
 	_pacman->direction = 0;
 	_pacman->availableBoosts = 3;
 	_pacman->boostTime = 3000;
-	_pacman->position->X = 350.0f;
-	_pacman->position->Y = 350.0f;
+	_pacman->position = new Vector2(350.0f, 335.0f);
 
 	//reset munchies
 	//delete values in old array
@@ -369,15 +365,17 @@ void Pacman::RestartLevel()
 	BuildLevel();
 	//reset score
 	score = 0;
+	invasionCooldown = 0;
 
 	//reset ghosts
-	for (int i = 0; i < GHOSTCOUNT; i++)
-	{
-		_ghosts[i]->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
-	}
-	_ghosts[1]->direction = 1;
+	_ghosts[0]->position = new Vector2(976.0f, 600.0f);
 	_ghosts[1]->position = new Vector2(16.0f, 100.0f);
-	_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
+	_ghosts[2]->position = new Vector2(16.0f, 600.0f);
+	do
+	{
+		_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
+	} while (!CheckPosition(*_ghosts[3]->target, 4));
+	_ghosts[3]->position = new Vector2(976.0f, 100.0f);
 }
 
 void Pacman::Update(int elapsedTime)
@@ -388,6 +386,7 @@ void Pacman::Update(int elapsedTime)
 	Input::MouseState* mouseState = Input::Mouse::GetState();
 
 	_pacman->boostTime += elapsedTime;
+	invasionCooldown += elapsedTime;
 
 	if (_gameState == MainMenu)
 	{
@@ -424,11 +423,25 @@ void Pacman::Update(int elapsedTime)
 			}
 
 			UpdatePacman(elapsedTime);
-
-			UpdateGreen(_ghosts[0], elapsedTime);
-			UpdateRed(_ghosts[1], elapsedTime);
-			UpdatePink(_ghosts[2], elapsedTime);
-			//UpdateOrange(_ghosts[3], elapsedTime);
+			
+			if (invasionCooldown >= 60000)
+			{
+				for (int i = 0; i < GHOSTCOUNT; i++)
+				{
+					RetreatGhost(_ghosts[i]);
+				}
+				if (invasionCooldown >= 90000)
+				{
+					invasionCooldown = 0;
+				}
+			}
+			else
+			{
+				UpdateGreen(_ghosts[0]);
+				UpdateRed(_ghosts[1]);
+				UpdatePink(_ghosts[2]);
+				UpdateOrange(_ghosts[3]);
+			}
 			for (int i = 0; i < GHOSTCOUNT; i++)
 			{
 				UpdateGhost(_ghosts[i], elapsedTime);
@@ -629,6 +642,7 @@ void Pacman::CheckRestart(Input::KeyboardState* state, Input::Keys restartKey)
 		_scoreboard->keyDown = false;
 		RestartLevel();
 		_gameState = MainMenu;
+		Audio::Play(_music);
 	}
 }
 
@@ -812,6 +826,23 @@ void Pacman::UpdateMunchie(int elapsedTime, int index)
 
 void Pacman::UpdateGhost(MovingEnemy* ghost, int elapsedTime)
 {
+	if (ghost->direction == 0)
+	{
+		ghost->position->X += ghost->speed * elapsedTime;
+	}
+	else if (ghost->direction == 1)
+	{
+		ghost->position->Y += ghost->speed * elapsedTime;
+	}
+	else if (ghost->direction == 2)
+	{
+		ghost->position->X -= ghost->speed * elapsedTime;
+	}
+	else if (ghost->direction == 3)
+	{
+		ghost->position->Y -= ghost->speed * elapsedTime;
+	}
+
 	ghost->currentFrameTime += elapsedTime;
 	if (ghost->currentFrameTime > ghost->cFrameTime) {
 		ghost->frame++; //increases animation frame
@@ -825,121 +856,86 @@ void Pacman::UpdateGhost(MovingEnemy* ghost, int elapsedTime)
 	ghost->sourceRect->Y = ghost->sourceRect->Height * ghost->direction; // change source rect based on direction and frame.
 }
 
-void Pacman::UpdateGreen(MovingEnemy* ghost, int elapsedTime)
+void Pacman::UpdateGreen(MovingEnemy* ghost)
 {
-	//horizontal
-	if (ghost->direction == 0)
+	//THIS IS INKY - Double vector line between red/blinky's position and two tiles ahead of pacman
+	Vector2 pacPos;
+	if (_pacman->direction == 0)
 	{
-		ghost->position->X += ghost->speed * elapsedTime;
+		pacPos = Vector2(_pacman->position->X + 24, _pacman->position->Y);
 	}
-	else if (ghost->direction == 2)
+	else if (_pacman->direction == 1)
 	{
-		ghost->position->X -= ghost->speed * elapsedTime;
+		pacPos = Vector2(_pacman->position->X, _pacman->position->Y + 24);
+	}
+	else if (_pacman->direction == 2)
+	{
+		pacPos = Vector2(_pacman->position->X - 24, _pacman->position->Y);
+	}
+	else if (_pacman->direction == 3)
+	{
+		pacPos = Vector2(_pacman->position->X, _pacman->position->Y - 24);
 	}
 
-	if (ghost->position->X + ghost->sourceRect->Width >= Graphics::GetViewportWidth())
-	{
-		ghost->direction = 2;
-	}
-	else if (ghost->position->X <= 0)
-	{
-		ghost->direction = 0;
-	}
+	//delete ghost->target;
+	ghost->target = new Vector2((pacPos.X - _ghosts[1]->position->X)*2, (pacPos.Y - _ghosts[1]->position->Y)*2);
+	PathfindTarget(ghost);
 }
 
-void Pacman::UpdateRed(MovingEnemy* ghost, int elapsedTime)
+void Pacman::UpdateRed(MovingEnemy* ghost)
 {
+	//delete ghost->target;
 	ghost->target = _pacman->position;
 	PathfindTarget(ghost);
-
-	if (ghost->direction == 0)
-	{
-		ghost->position->X += ghost->speed * elapsedTime;
-	}
-	else if (ghost->direction == 1)
-	{
-		ghost->position->Y += ghost->speed * elapsedTime;
-	}
-	else if (ghost->direction == 2)
-	{
-		ghost->position->X -= ghost->speed * elapsedTime;
-	}
-	else if (ghost->direction == 3)
-	{
-		ghost->position->Y -= ghost->speed * elapsedTime;
-	}
 }
 
-void Pacman::UpdatePink(MovingEnemy* ghost, int elapsedTime)
+void Pacman::UpdatePink(MovingEnemy* ghost)
 {
-	//horizontal
-	if (ghost->direction == 0)
+	//delete ghost->target;
+	if (_pacman->direction == 0)
 	{
-		ghost->position->X += ghost->speed * elapsedTime;
+		ghost->target = new Vector2(_pacman->position->X + 48, _pacman->position->Y);
 	}
-	else if (ghost->direction == 1)
+	else if (_pacman->direction == 1)
 	{
-		ghost->position->Y += ghost->speed * elapsedTime;
+		ghost->target = new Vector2(_pacman->position->X, _pacman->position->Y +48);
 	}
-	else if (ghost->direction == 2)
+	else if (_pacman->direction == 2)
 	{
-		ghost->position->X -= ghost->speed * elapsedTime;
+		ghost->target = new Vector2(_pacman->position->X - 48, _pacman->position->Y);
 	}
-	else if (ghost->direction == 3)
+	else if (_pacman->direction == 3)
 	{
-		ghost->position->Y -= ghost->speed * elapsedTime;
+		ghost->target = new Vector2(_pacman->position->X, _pacman->position->Y - 48);
 	}
-
-	if (ghost->position->X + ghost->sourceRect->Width > Graphics::GetViewportWidth())
-	{
-		ghost->position->X = Graphics::GetViewportWidth() - ghost->sourceRect->Width;
-		ghost->direction = 1;
-	}
-	else if (ghost->position->Y + ghost->sourceRect->Height > Graphics::GetViewportHeight())
-	{
-		ghost->position->Y = Graphics::GetViewportHeight() - ghost->sourceRect->Height;
-		ghost->direction = 2;
-	}
-	else if (ghost->position->X < 0)
-	{
-		ghost->position->X = 0;
-		ghost->direction = 3;
-	}
-	else if (ghost->position->Y < 0)
-	{
-		ghost->position->Y = 0;
-		ghost->direction = 0;
-	}
-}
-
-void Pacman::UpdateOrange(MovingEnemy* ghost, int elapsedTime)
-{
 	PathfindTarget(ghost);
+}
 
-	if (ghost->direction == 0)
+void Pacman::UpdateOrange(MovingEnemy* ghost)
+{
+	//THIS IS CLYDE - try to get him to move to random points
+	//OR: when 8 tiles away, target pacman. when closer, scatter to retreat tile
+	int xDist = _pacman->position->X - ghost->position->X;
+	xDist *= xDist;
+	int yDist = _pacman->position->Y - ghost->position->Y;
+	yDist *= yDist;
+	int squareDist = xDist + yDist;
+	if (squareDist >= 9216)
 	{
-		ghost->position->X += ghost->speed * elapsedTime;
+		ghost->target = _pacman->position;
 	}
-	else if (ghost->direction == 1)
+	else
 	{
-		ghost->position->Y += ghost->speed * elapsedTime;
-	}
-	else if (ghost->direction == 2)
-	{
-		ghost->position->X -= ghost->speed * elapsedTime;
-	}
-	else if (ghost->direction == 3)
-	{
-		ghost->position->Y -= ghost->speed * elapsedTime;
+		ghost->target = ghost->scatterTile;
 	}
 
-	if (ghost->position->X < ghost->target->X + 1 &&
-		ghost->position->X + ghost->sourceRect->Width > ghost->target->X &&
-		ghost->position->Y < ghost->target->Y + 1 &&
-		ghost->position->Y + ghost->sourceRect->Height > ghost->target->Y)
-	{
-		ghost->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
-	}
+	PathfindTarget(ghost);
+}
+
+void Pacman::RetreatGhost(MovingEnemy* ghost)
+{
+	ghost->target = ghost->scatterTile;
+	PathfindTarget(ghost);
 }
 
 void Pacman::CheckCollisions(int elapsedTime)
@@ -1115,11 +1111,9 @@ void Pacman::CheckPacWallCollision(int elapsedTime)
 void Pacman::PathfindTarget(MovingEnemy* ghost)
 { //avoids walls
 	vector<int> options = GetOptions(ghost);
-	cout << "List size " << options.size() << endl;
 	if (options.size() >= 1)
 	{
 		int index = GetBestMove(ghost, options);
-		cout << index << " = direction " << options[index] << endl << endl;
 		ghost->direction = options[index];
 	}
 }
@@ -1148,24 +1142,19 @@ vector<int> Pacman::GetOptions(MovingEnemy* ghost)
 	if (CheckPosition(*ghost->position, 0) && oppDirection != 0)
 	{
 		options.push_back(0);
-		cout << "0, ";
 	}
 	if (CheckPosition(*ghost->position, 1) && oppDirection != 1)
 	{
 		options.push_back(1);
-		cout << "1, ";
 	}
 	if (CheckPosition(*ghost->position, 2) && oppDirection != 2)
 	{
 		options.push_back(2);
-		cout << "2, ";
 	}
 	if (CheckPosition(*ghost->position, 3) && oppDirection != 3)
 	{
 		options.push_back(3);
-		cout << "3, ";
 	}
-	cout << endl;
 	return options;
 }
 
@@ -1247,7 +1236,6 @@ int Pacman::GetBestMove(MovingEnemy* ghost, vector<int> &options)
 		int yDiff = ghost->target->Y - position->Y;
 		yDiff *= yDiff;
 		int diff = xDiff + yDiff;
-		cout << xDiff + yDiff << ", ";
 
 		if (xDiff + yDiff < lowestDiff)
 		{
@@ -1256,6 +1244,5 @@ int Pacman::GetBestMove(MovingEnemy* ghost, vector<int> &options)
 		}
 		delete position;
 	}
-	cout << endl;
 	return lowestChoice;
 }

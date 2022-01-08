@@ -54,6 +54,7 @@ struct Enemy
 struct MovingEnemy
 {
 	Vector2* position;
+	Vector2* scatterTile;
 	Texture2D* texture;
 	Rect* sourceRect;
 	int direction;
@@ -134,11 +135,12 @@ private:
 	void UpdateMunchie(int elapsedTime, int index);
 
 	//PathFinding
-	void UpdateGreen(MovingEnemy*, int elapsedTime);
-	void UpdateRed(MovingEnemy*, int elapsedTime);
-	void UpdatePink(MovingEnemy*, int elapsedTime);
-	void UpdateOrange(MovingEnemy*, int elapsedTime);
+	void UpdateGreen(MovingEnemy*);
+	void UpdateRed(MovingEnemy*);
+	void UpdatePink(MovingEnemy*);
+	void UpdateOrange(MovingEnemy*);
 	void UpdateGhost(MovingEnemy*, int elapsedTime);
+	void RetreatGhost(MovingEnemy*);
 	void PathfindTarget(MovingEnemy*);
 
 	vector<int> GetOptions(MovingEnemy*);
@@ -157,6 +159,7 @@ private:
 	int score;
 	int munchieCount;
 	int numMunchies;
+	int invasionCooldown = 0;
 
 	// Position for String
 	Vector2* _stringPosition;
