@@ -23,6 +23,7 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	_pacman->invertAnim = false;
 	_pacman->availableBoosts = 3;
 	_pacman->boostTime = 3000;
+	_pacman->powerUpTime = 99999;
 
 	LoadLevel();
 
@@ -55,6 +56,7 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 		_ghosts[i]->frame = 0;
 		_ghosts[i]->currentFrameTime = 0;
 		_ghosts[i]->target = new Vector2(-1, -1);
+		_ghosts[i]->pointWorth = 1000;
 	}
 
 	_cherry = new Enemy();
@@ -65,19 +67,16 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 
 	//can be toggled by TAB
 	_hasCollision = false;
+	_powerUpActive = false;
 	score = 0;
 
 	_gameState = State::MainMenu;
 
 	_pauseMenu = new Menu();
 	_pauseMenu->keyDown = false;
-
 	_startMenu = new Menu();
-
 	_winMenu = new Menu();
-
 	_loseMenu = new Menu();
-
 	_scoreboard = new Menu();
 	_scoreboard->keyDown = false;
 
@@ -156,6 +155,7 @@ Pacman::~Pacman()
 	delete _cherry;
 
 	delete _ghosts[0]->texture;
+	delete _ghosts[0]->scaredTex;
 	for (int i = 0; i < GHOSTCOUNT; i++)
 	{
 		delete _ghosts[i]->sourceRect;
@@ -219,18 +219,29 @@ void Pacman::LoadContent()
 	_ghosts[2]->texture->Load("Textures/GhostPink.png", false);
 	_ghosts[3]->texture = new Texture2D();
 	_ghosts[3]->texture->Load("Textures/GhostOrange.png", false);
+	Texture2D* scaredTex = new Texture2D();
+	scaredTex->Load("Textures/GhostScared.png", false);
 	for (int i = 0; i < GHOSTCOUNT; i++)
 	{
+		_ghosts[i]->scaredTex = scaredTex;
 		_ghosts[i]->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
 	}
 	_ghosts[0]->position = new Vector2(976.0f, 600.0f);
 	_ghosts[0]->scatterTile = new Vector2(976.0f, 600.0f);
+	_ghosts[0]->ressurrectionCooldown = 10000;
+	_ghosts[0]->isEaten = true;
 	_ghosts[1]->position = new Vector2(16.0f, 100.0f);
 	_ghosts[1]->scatterTile = new Vector2(16.0f, 100.0f);
+	_ghosts[1]->ressurrectionCooldown = 0;
+	_ghosts[1]->isEaten = false;
 	_ghosts[2]->position = new Vector2(16.0f, 600.0f);
 	_ghosts[2]->scatterTile = new Vector2(16.0f, 600.0f);
+	_ghosts[2]->ressurrectionCooldown = 5000;
+	_ghosts[2]->isEaten = true;
 	_ghosts[3]->position = new Vector2(976.0f, 100.0f);
 	_ghosts[3]->scatterTile = new Vector2(976.0f, 100.0f);
+	_ghosts[3]->ressurrectionCooldown = 15000;
+	_ghosts[3]->isEaten = true;
 
 	// Set string position
 	_stringPosition = new Vector2(10.0f, 25.0f);
@@ -374,6 +385,7 @@ void Pacman::BuildLevel()
 
 void Pacman::RestartLevel()
 {
+	_powerUpActive = false;
 	//reset pacman pos, boosts, lives
 	_pacman->dead = false;
 	_pacman->direction = 0;
@@ -436,6 +448,15 @@ void Pacman::RestartLevel()
 		_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 	} while (!CheckPosition(*_ghosts[3]->target, 4));
 	_ghosts[3]->position = new Vector2(976.0f, 100.0f);
+
+	_ghosts[0]->ressurrectionCooldown = 10000;
+	_ghosts[0]->isEaten = true;
+	_ghosts[1]->ressurrectionCooldown = 0;
+	_ghosts[1]->isEaten = false;
+	_ghosts[2]->ressurrectionCooldown = 5000;
+	_ghosts[2]->isEaten = true;
+	_ghosts[3]->ressurrectionCooldown = 15000;
+	_ghosts[3]->isEaten = true;
 }
 
 void Pacman::Update(int elapsedTime)
@@ -444,9 +465,6 @@ void Pacman::Update(int elapsedTime)
 	Input::KeyboardState* keyboardState = Input::Keyboard::GetState();
 	//Gets current state of mouse
 	Input::MouseState* mouseState = Input::Mouse::GetState();
-
-	_pacman->boostTime += elapsedTime;
-	invasionCooldown += elapsedTime;
 
 	if (_gameState == MainMenu)
 	{
@@ -467,6 +485,25 @@ void Pacman::Update(int elapsedTime)
 	}
 	else
 	{
+		_pacman->boostTime += elapsedTime;
+		invasionCooldown += elapsedTime;
+		_pacman->powerUpTime += elapsedTime;
+		if (_pacman->powerUpTime >= 10000)
+		{
+			_powerUpActive = false;
+		}
+		for (int i = 0; i < GHOSTCOUNT; i++)
+		{
+			if (_ghosts[i]->isEaten && _ghosts[i]->ressurrectionCooldown > 0)
+			{
+				_ghosts[i]->ressurrectionCooldown -= elapsedTime;
+			}
+			if (_ghosts[i]->ressurrectionCooldown <= 0)
+			{
+				_ghosts[i]->isEaten = false;
+			}
+		}
+
 		CheckPaused(keyboardState, Input::Keys::P);
 
 		if (_gameState != Pause && _gameState != Lose && _gameState != Win) {
@@ -492,7 +529,7 @@ void Pacman::Update(int elapsedTime)
 
 			UpdatePacman(elapsedTime);
 			
-			if (invasionCooldown >= 60000)
+			if (invasionCooldown >= 60000 || _powerUpActive)
 			{
 				for (int i = 0; i < GHOSTCOUNT; i++)
 				{
@@ -512,7 +549,10 @@ void Pacman::Update(int elapsedTime)
 			}
 			for (int i = 0; i < GHOSTCOUNT; i++)
 			{
-				UpdateGhost(_ghosts[i], elapsedTime);
+				if (!_ghosts[i]->isEaten)
+				{
+					UpdateGhost(_ghosts[i], elapsedTime);
+				}
 			}
 
 			CheckCollisions(elapsedTime);
@@ -576,7 +616,17 @@ void Pacman::Draw(int elapsedTime)
 
 		for (int i = 0; i < GHOSTCOUNT; i++)
 		{
-			SpriteBatch::Draw(_ghosts[i]->texture, _ghosts[i]->position, _ghosts[i]->sourceRect); // Draws ghosts
+			if (!_ghosts[i]->isEaten)
+			{
+				if (_powerUpActive)
+				{
+					SpriteBatch::Draw(_ghosts[i]->scaredTex, _ghosts[i]->position, _ghosts[i]->sourceRect); // Draws ghosts
+				}
+				else
+				{
+					SpriteBatch::Draw(_ghosts[i]->texture, _ghosts[i]->position, _ghosts[i]->sourceRect); // Draws ghosts
+				}
+			}
 		}
 
 		if (!_cherry->isEaten)
@@ -628,7 +678,7 @@ void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::
 		_pacman->boostTime = 0;
 	}
 
-	if (_pacman->boostTime >= 3000)
+	if (_pacman->boostTime >= 3000 && !_powerUpActive)
 	{
 		_pacman->speedMultiplier = 1.0f;
 	}
@@ -1019,7 +1069,7 @@ void Pacman::UpdateOrange(MovingEnemy* ghost)
 	}
 	else
 	{
-		ghost->target = ghost->scatterTile;
+		ghost->target = new Vector2(ghost->scatterTile->X, ghost->scatterTile->Y);
 	}
 
 	PathfindTarget(ghost);
@@ -1027,7 +1077,7 @@ void Pacman::UpdateOrange(MovingEnemy* ghost)
 
 void Pacman::RetreatGhost(MovingEnemy* ghost)
 {
-	ghost->target = ghost->scatterTile;
+	ghost->target = new Vector2(ghost->scatterTile->X, ghost->scatterTile->Y);
 	PathfindTarget(ghost);
 }
 
@@ -1069,6 +1119,10 @@ void Pacman::CheckCollisions(int elapsedTime)
 			_powMunchies[i] = NULL;
 			numPowMunchies--;
 			CheckWin();
+
+			_powerUpActive = true;
+			_pacman->speedMultiplier = 2.0f;
+			_pacman->powerUpTime = 0;
 		}
 	}
 	if (_cherry->isEaten == false && CheckObjectCollision(_cherry))
@@ -1139,22 +1193,68 @@ void Pacman::CheckViewportCollision()
 			_pacman->position->Y = 0;
 		}
 	}
+
+	//for ghosts
+	for (int i = 0; i < GHOSTCOUNT; i++)
+	{
+		if (!_hasCollision)
+		{
+			//prevents movement off right edge
+			if (_ghosts[i]->position->X - _ghosts[i]->sourceRect->Width > Graphics::GetViewportWidth()) //1024 is game width
+			{
+				//teleport to left wall
+				_ghosts[i]->position->X = 0 - _ghosts[i]->sourceRect->Width;
+			}
+			//prevent movement off left edge
+			if (_ghosts[i]->position->X + _ghosts[i]->sourceRect->Width < 0)
+			{
+				//teleport to right wall
+				_ghosts[i]->position->X = Graphics::GetViewportWidth();
+			}
+			// off bottom edge
+			if (_ghosts[i]->position->Y > Graphics::GetViewportHeight()) //1024 is game width
+			{
+				//teleport to top wall
+				_ghosts[i]->position->Y = 0 - _ghosts[i]->sourceRect->Height;
+			}
+			// off top edge
+			if (_ghosts[i]->position->Y + _ghosts[i]->sourceRect->Height < 0)
+			{
+				//teleport to bottom wall
+				_ghosts[i]->position->Y = Graphics::GetViewportHeight();
+			}
+		}
+	}
 }
 
 void Pacman::CheckGhostCollisions()
 {
 	for (int i = 0; i < GHOSTCOUNT; i++)
 	{
+		if (_ghosts[i]->isEaten)
+		{
+			continue;
+		}
 		if (_ghosts[i]->position->X + 8 < _pacman->position->X + _pacman->sourceRect->Width &&
 			_ghosts[i]->position->X + _ghosts[i]->sourceRect->Width - 8 > _pacman->position->X &&
 			_ghosts[i]->position->Y + 8 < _pacman->position->Y + _pacman->sourceRect->Height &&
 			_ghosts[i]->position->Y + _ghosts[i]->sourceRect->Height - 8 > _pacman->position->Y)
 		{
-			_pacman->dead = true;
-			i = GHOSTCOUNT;
-			_gameState = Lose;
-			Audio::Play(_death);
-			Audio::Stop(_music);
+			if (_powerUpActive)
+			{
+				_ghosts[i]->isEaten = true;
+				_ghosts[i]->ressurrectionCooldown = 30000;
+				_ghosts[i]->position = new Vector2(_ghosts[i]->scatterTile->X, _ghosts[i]->scatterTile->Y);
+				score += _ghosts[i]->pointWorth;
+			}
+			else
+			{
+				_pacman->dead = true;
+				i = GHOSTCOUNT;
+				_gameState = Lose;
+				Audio::Play(_death);
+				Audio::Stop(_music);
+			}
 		}
 	}
 }
@@ -1265,6 +1365,11 @@ vector<int> Pacman::GetOptions(MovingEnemy* ghost)
 	if (CheckPosition(*ghost->position, 3) && oppDirection != 3)
 	{
 		options.push_back(3);
+	}
+
+	if (options.size() == 0)
+	{
+		options.push_back(oppDirection);
 	}
 	return options;
 }

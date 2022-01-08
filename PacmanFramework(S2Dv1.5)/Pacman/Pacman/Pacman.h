@@ -37,6 +37,7 @@ struct Player
 	//Extra functions
 	int availableBoosts;
 	int boostTime;
+	int powerUpTime;
 };
 
 struct Enemy
@@ -56,12 +57,16 @@ struct MovingEnemy
 	Vector2* position;
 	Vector2* scatterTile;
 	Texture2D* texture;
+	Texture2D* scaredTex;
 	Rect* sourceRect;
 	int direction;
 	float speed;
 	const int cFrameTime = 500;
 	int currentFrameTime;
 	int frame;
+	bool isEaten;
+	int ressurrectionCooldown;
+	int pointWorth;
 	Vector2* target;
 };
 
@@ -169,6 +174,7 @@ private:
 	Vector2* _stringPosition;
 
 	bool _hasCollision;
+	bool _powerUpActive;
 
 	// Data for menus
 	Menu* _pauseMenu;
