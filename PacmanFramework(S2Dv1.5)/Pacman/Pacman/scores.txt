@@ -2,6 +2,8 @@ Emily
 9100
 Marcy
 7400
+Timothy
+3900
 Johnathan
 3600
 Theo
@@ -15,6 +17,4 @@ Emily
 Thomas
 2300
 Emily
-2100
-Mark
 2100

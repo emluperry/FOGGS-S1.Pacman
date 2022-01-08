@@ -37,6 +37,16 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	}
 	numMunchies = munchieCount;
 
+	_powMunchies = new Enemy * [powMunchieCount];
+	for (int i = 0; i < powMunchieCount; i++)
+	{
+		_powMunchies[i] = new Enemy();
+		_powMunchies[i]->currentFrameTime = 0;
+		_powMunchies[i]->frameCount = rand() % 1;
+		_powMunchies[i]->pointWorth = 500;
+	}
+	numPowMunchies = powMunchieCount;
+
 	for (int i = 0; i < GHOSTCOUNT; i++)
 	{
 		_ghosts[i] = new MovingEnemy();
@@ -115,7 +125,7 @@ Pacman::~Pacman()
 	delete _walls;
 
 	delete _munchies[0]->texture;
-	for (int i = 0; i < MUNCHIECOUNT; i++)
+	for (int i = 0; i < munchieCount; i++)
 	{
 		if (_munchies[i] == NULL)
 		{
@@ -124,6 +134,19 @@ Pacman::~Pacman()
 		delete _munchies[i]->sourceRect;
 		delete _munchies[i]->position;
 		delete _munchies[i];
+	}
+	delete[] _munchies;
+
+	delete _powMunchies[0]->texture;
+	for (int i = 0; i < powMunchieCount; i++)
+	{
+		if (_powMunchies[i] == NULL)
+		{
+			continue;
+		}
+		delete _powMunchies[i]->sourceRect;
+		delete _powMunchies[i]->position;
+		delete _powMunchies[i];
 	}
 	delete[] _munchies;
 
@@ -165,6 +188,7 @@ Pacman::~Pacman()
 	delete _warp;
 	delete _win;
 	delete _collision;
+	delete _powerUp;
 
 	delete lines;
 }
@@ -183,7 +207,7 @@ void Pacman::LoadContent()
 	_cherry->texture = new Texture2D;
 	_cherry->texture->Load("Textures/Cherry.png", false);
 	_cherry->sourceRect = new Rect(0.0f, 0.0f, 32, 32);
-	_cherry->position = new Vector2(500.0f, 472.0f);
+	_cherry->position = new Vector2(500.0f, 494.0f);
 
 	//load Ghosts
 	_ghosts[0]->texture = new Texture2D();
@@ -238,6 +262,7 @@ void Pacman::LoadContent()
 
 	_pop->Load("Sounds/pop.wav");
 	_death->Load("Sounds/death.wav");
+	_powerUp->Load("Sounds/powerup.wav");
 	_warp->Load("Sounds/warp.wav");
 	// source: https://freesound.org/people/LittleRobotSoundFactory/sounds/270319/
 	_win->Load("Sounds/win.wav");
@@ -275,6 +300,7 @@ void Pacman::LoadLevel()
 	stream.close();
 
 	munchieCount = 0;
+	powMunchieCount = 0;
 
 	for (int y = 0; y < lines->size(); ++y)
 	{
@@ -283,6 +309,10 @@ void Pacman::LoadLevel()
 			if (lines->at(y)[x] == 'o')
 			{
 				munchieCount++;
+			}
+			if (lines->at(y)[x] == 'O')
+			{
+				powMunchieCount++;
 			}
 		}
 	}
@@ -298,7 +328,11 @@ void Pacman::BuildLevel()
 	wallTex->Load("Textures/wall.png", false);
 	Texture2D* munchieTex = new Texture2D();
 	munchieTex->Load("Textures/Munchie.tga", true);
+	Texture2D* powMunchieTex = new Texture2D();
+	powMunchieTex->Load("Textures/PowerMunchie.png", false);
+
 	int index = 0;
+	int powindex = 0;
 	// Loop over every tile position,
 	for (int y = 0; y < lines->size(); ++y)
 	{
@@ -326,6 +360,13 @@ void Pacman::BuildLevel()
 				_munchies[index]->position = new Vector2(-104 + x * 32, -8 + y * 32);
 				index++;
 			}
+			else if (tileType == 'O')
+			{
+				_powMunchies[powindex]->texture = powMunchieTex;
+				_powMunchies[powindex]->sourceRect = new Rect(0.0f, 0.0f, 16, 16);
+				_powMunchies[powindex]->position = new Vector2(-104 + x * 32, -8 + y * 32);
+				powindex++;
+			}
 		}
 	}
 }
@@ -341,7 +382,7 @@ void Pacman::RestartLevel()
 
 	//reset munchies
 	//delete values in old array
-	for (int i = 0; i < MUNCHIECOUNT; i++)
+	for (int i = 0; i < munchieCount; i++)
 	{
 		if (_munchies[i] == NULL)
 		{
@@ -350,6 +391,16 @@ void Pacman::RestartLevel()
 		delete _munchies[i]->sourceRect;
 		delete _munchies[i]->position;
 		delete _munchies[i];
+	}
+	for (int i = 0; i < powMunchieCount; i++)
+	{
+		if (_powMunchies[i] == NULL)
+		{
+			continue;
+		}
+		delete _powMunchies[i]->sourceRect;
+		delete _powMunchies[i]->position;
+		delete _powMunchies[i];
 	}
 	//create new array values
 	LoadLevel();
@@ -361,6 +412,14 @@ void Pacman::RestartLevel()
 		_munchies[i]->pointWorth = 100;
 	}
 	numMunchies = munchieCount;
+	for (int i = 0; i < powMunchieCount; i++)
+	{
+		_powMunchies[i] = new Enemy();
+		_powMunchies[i]->currentFrameTime = 0;
+		_powMunchies[i]->frameCount = rand() % 1;
+		_powMunchies[i]->pointWorth = 500;
+	}
+	numPowMunchies = powMunchieCount;
 	//setup new values for generation
 	BuildLevel();
 	//reset score
@@ -413,13 +472,21 @@ void Pacman::Update(int elapsedTime)
 
 			Input(elapsedTime, keyboardState, mouseState);
 
-			for (int i = 0; i < MUNCHIECOUNT; i++)
+			for (int i = 0; i < munchieCount; i++)
 			{
 				if (_munchies[i] == NULL)
 				{
 					continue;
 				}
 				UpdateMunchie(elapsedTime, i);
+			}
+			for (int i = 0; i < powMunchieCount; i++)
+			{
+				if (_powMunchies[i] == NULL)
+				{
+					continue;
+				}
+				UpdatePowMunchie(elapsedTime, i);
 			}
 
 			UpdatePacman(elapsedTime);
@@ -489,13 +556,21 @@ void Pacman::Draw(int elapsedTime)
 			SpriteBatch::Draw(_pacman->texture, _pacman->position, _pacman->sourceRect); // Draws Pacman
 		}
 
-		for (int i = 0; i < MUNCHIECOUNT; i++)
+		for (int i = 0; i < munchieCount; i++)
 		{
 			if (_munchies[i] == NULL)
 			{
 				continue;
 			}
 			SpriteBatch::Draw(_munchies[i]->texture, _munchies[i]->position, _munchies[i]->sourceRect); // Draws munchie
+		}
+		for (int i = 0; i < powMunchieCount; i++)
+		{
+			if (_powMunchies[i] == NULL)
+			{
+				continue;
+			}
+			SpriteBatch::Draw(_powMunchies[i]->texture, _powMunchies[i]->position, _powMunchies[i]->sourceRect); // Draws munchie
 		}
 
 		for (int i = 0; i < GHOSTCOUNT; i++)
@@ -619,7 +694,7 @@ void Pacman::CheckStart(Input::KeyboardState* state, Input::Keys startKey)
 
 void Pacman::CheckWin()
 {
-	if (numMunchies == 0)
+	if (numMunchies == 0 && numPowMunchies == 0)
 	{
 		_gameState = Win;
 		Audio::Stop(_music);
@@ -824,6 +899,23 @@ void Pacman::UpdateMunchie(int elapsedTime, int index)
 	_cherry->sourceRect->X = _cherry->sourceRect->Width * _munchie->frameCount; // change cherry sprite based on munchie sprite/time
 }
 
+void Pacman::UpdatePowMunchie(int elapsedTime, int index)
+{
+	Enemy* powMunchie = _powMunchies[index];
+	powMunchie->currentFrameTime += elapsedTime;
+	if (powMunchie->currentFrameTime > powMunchie->cFrameTime)
+	{
+		powMunchie->frameCount++;
+		if (powMunchie->frameCount >= 2)
+		{
+			powMunchie->frameCount = 0;
+		}
+		powMunchie->currentFrameTime -= powMunchie->cFrameTime;
+	}
+
+	powMunchie->sourceRect->X = powMunchie->sourceRect->Width * powMunchie->frameCount;
+}
+
 void Pacman::UpdateGhost(MovingEnemy* ghost, int elapsedTime)
 {
 	if (ghost->direction == 0)
@@ -942,7 +1034,7 @@ void Pacman::CheckCollisions(int elapsedTime)
 {
 	CheckGhostCollisions();
 	CheckViewportCollision();
-	for (int i = 0; i < MUNCHIECOUNT; i++)
+	for (int i = 0; i < munchieCount; i++)
 	{
 		if (_munchies[i] == NULL)
 		{
@@ -957,6 +1049,24 @@ void Pacman::CheckCollisions(int elapsedTime)
 			delete _munchies[i];
 			_munchies[i] = NULL;
 			numMunchies--;
+			CheckWin();
+		}
+	}
+	for (int i = 0; i < powMunchieCount; i++)
+	{
+		if (_powMunchies[i] == NULL)
+		{
+			continue;
+		}
+		if (CheckObjectCollision(_powMunchies[i]))
+		{
+			Audio::Play(_powerUp);
+			score += _powMunchies[i]->pointWorth;
+			delete _powMunchies[i]->sourceRect;
+			delete _powMunchies[i]->position;
+			delete _powMunchies[i];
+			_powMunchies[i] = NULL;
+			numPowMunchies--;
 			CheckWin();
 		}
 	}

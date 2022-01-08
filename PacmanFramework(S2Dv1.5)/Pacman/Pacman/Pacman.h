@@ -133,6 +133,7 @@ private:
 	//Update methods
 	void UpdatePacman(int elapsedTime);
 	void UpdateMunchie(int elapsedTime, int index);
+	void UpdatePowMunchie(int elapsedTime, int index);
 
 	//PathFinding
 	void UpdateGreen(MovingEnemy*);
@@ -149,6 +150,7 @@ private:
 
 	Player* _pacman;
 	Enemy** _munchies;
+	Enemy** _powMunchies;
 	Enemy* _cherry;
 	MovingEnemy* _ghosts[GHOSTCOUNT];
 
@@ -158,7 +160,9 @@ private:
 	vector<ScoreEntry> scores;
 	int score;
 	int munchieCount;
+	int powMunchieCount;
 	int numMunchies;
+	int numPowMunchies;
 	int invasionCooldown = 0;
 
 	// Position for String
@@ -181,6 +185,7 @@ private:
 	SoundEffect* _warp;
 	SoundEffect* _win;
 	SoundEffect* _collision;
+	SoundEffect* _powerUp;
 
 public:
 
