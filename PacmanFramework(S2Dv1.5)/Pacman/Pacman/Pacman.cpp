@@ -87,6 +87,7 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	_warp = new SoundEffect();
 	_win = new SoundEffect();
 	_collision = new SoundEffect();
+	_powerUp = new SoundEffect();
 
 	//Initialise important Game aspects
 	Audio::Initialise();

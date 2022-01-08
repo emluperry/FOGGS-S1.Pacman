@@ -1,4 +1,6 @@
 Emily
+9600
+Emily
 9100
 Marcy
 7400
@@ -16,5 +18,3 @@ Emily
 2400
 Thomas
 2300
-Emily
-2100
