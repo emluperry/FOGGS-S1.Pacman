@@ -38,6 +38,7 @@ struct Player
 	int availableBoosts;
 	int boostTime;
 	int powerUpTime;
+	int availableLives;
 };
 
 struct Enemy
@@ -112,6 +113,7 @@ private:
 	void LoadLevel();
 	void BuildLevel();
 	void RestartLevel();
+	void ResetPositions();
 	//Input methods
 	void Input(int elapsedTime, Input::KeyboardState* state, Input::MouseState* mouseState);
 

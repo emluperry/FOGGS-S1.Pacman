@@ -1,4 +1,6 @@
 Emily
+16800
+Emily
 9600
 Emily
 9100
@@ -16,5 +18,3 @@ Timothy
 3900
 Johnathan
 3600
-Katy
-3500

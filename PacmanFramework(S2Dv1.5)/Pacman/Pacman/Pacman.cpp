@@ -24,6 +24,7 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv)
 	_pacman->availableBoosts = 3;
 	_pacman->boostTime = 3000;
 	_pacman->powerUpTime = 99999;
+	_pacman->availableLives = 3;
 
 	LoadLevel();
 
@@ -390,6 +391,7 @@ void Pacman::RestartLevel()
 	_pacman->dead = false;
 	_pacman->direction = 0;
 	_pacman->availableBoosts = 3;
+	_pacman->availableLives = 3;
 	_pacman->boostTime = 3000;
 	_pacman->position = new Vector2(350.0f, 335.0f);
 
@@ -443,10 +445,6 @@ void Pacman::RestartLevel()
 	_ghosts[0]->position = new Vector2(976.0f, 600.0f);
 	_ghosts[1]->position = new Vector2(16.0f, 100.0f);
 	_ghosts[2]->position = new Vector2(16.0f, 600.0f);
-	do
-	{
-		_ghosts[3]->target = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
-	} while (!CheckPosition(*_ghosts[3]->target, 4));
 	_ghosts[3]->position = new Vector2(976.0f, 100.0f);
 
 	_ghosts[0]->ressurrectionCooldown = 10000;
@@ -457,6 +455,34 @@ void Pacman::RestartLevel()
 	_ghosts[2]->isEaten = true;
 	_ghosts[3]->ressurrectionCooldown = 15000;
 	_ghosts[3]->isEaten = true;
+}
+
+void Pacman::ResetPositions()
+{
+	_powerUpActive = false;
+	//reset pacman pos, boosts, lives
+	_pacman->dead = false;
+	_pacman->direction = 0;
+	_pacman->availableBoosts = 3;
+	_pacman->availableLives = 3;
+	_pacman->boostTime = 3000;
+	_pacman->position = new Vector2(350.0f, 335.0f);
+
+	_ghosts[0]->position = new Vector2(976.0f, 600.0f);
+	_ghosts[1]->position = new Vector2(16.0f, 100.0f);
+	_ghosts[2]->position = new Vector2(16.0f, 600.0f);
+	_ghosts[3]->position = new Vector2(976.0f, 100.0f);
+
+	_ghosts[0]->ressurrectionCooldown = 10000;
+	_ghosts[0]->isEaten = true;
+	_ghosts[1]->ressurrectionCooldown = 0;
+	_ghosts[1]->isEaten = false;
+	_ghosts[2]->ressurrectionCooldown = 5000;
+	_ghosts[2]->isEaten = true;
+	_ghosts[3]->ressurrectionCooldown = 15000;
+	_ghosts[3]->isEaten = true;
+
+	invasionCooldown = 0;
 }
 
 void Pacman::Update(int elapsedTime)
@@ -577,7 +603,7 @@ void Pacman::Draw(int elapsedTime)
 		SpriteBatch::DrawString(stream.str().c_str(), _startMenu->_menuStringPosition, Color::Yellow);
 		break;
 	case Playing:
-		stream << "Pacman X: " << (int)_pacman->position->X << " Y: " << (int)_pacman->position->Y << " Boosts: " << _pacman->availableBoosts << " Score: " << score;
+		stream << "Pacman X: " << (int)_pacman->position->X << " Y: " << (int)_pacman->position->Y << " Boosts: " << _pacman->availableBoosts << " Score: " << score << " Lives: " << _pacman->availableLives;
 
 		width = _walls->size();
 		height = _walls->at(0).size();
@@ -1249,11 +1275,19 @@ void Pacman::CheckGhostCollisions()
 			}
 			else
 			{
-				_pacman->dead = true;
+				_pacman->availableLives -= 1;
 				i = GHOSTCOUNT;
-				_gameState = Lose;
 				Audio::Play(_death);
-				Audio::Stop(_music);
+				if (_pacman->availableLives <= 0)
+				{
+					_pacman->dead = true;
+					_gameState = Lose;
+					Audio::Stop(_music);
+				}
+				else
+				{
+					ResetPositions();
+				}
 			}
 		}
 	}
