@@ -463,8 +463,6 @@ void Pacman::ResetPositions()
 	//reset pacman pos, boosts, lives
 	_pacman->dead = false;
 	_pacman->direction = 0;
-	_pacman->availableBoosts = 3;
-	_pacman->availableLives = 3;
 	_pacman->boostTime = 3000;
 	_pacman->position = new Vector2(350.0f, 335.0f);
 
