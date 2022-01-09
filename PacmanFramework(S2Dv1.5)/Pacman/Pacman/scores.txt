@@ -1,6 +1,8 @@
 Emily
 16800
 Emily
+16800
+Emily
 9600
 Emily
 9100
@@ -16,5 +18,3 @@ Pacman
 5200
 Timothy
 3900
-Johnathan
-3600

@@ -728,12 +728,6 @@ void Pacman::Input(int elapsedTime, Input::KeyboardState* keyboardState, Input::
 		_pacman->direction = 1;
 	}
 
-	//Checks if R key is pressed. Randomly moves cherry based on this.
-	if (keyboardState->IsKeyDown(Input::Keys::R))
-	{
-		_cherry->position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
-	}
-
 	//Toggles wall collision and wall wrapping.
 	if (keyboardState->IsKeyDown(Input::Keys::TAB))
 				_hasCollision = !_hasCollision;
