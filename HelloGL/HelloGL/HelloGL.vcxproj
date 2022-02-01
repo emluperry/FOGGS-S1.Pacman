@@ -139,9 +139,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="GLUTCallbacks.h" />
     <ClInclude Include="HelloGL.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="GLUTCallbacks.cpp" />
     <ClCompile Include="HelloGL.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
